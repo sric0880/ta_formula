@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ta_formula"
+version = "1.0"
+description = 'talib extension for formula computation'
+authors = [
+    {name = "sric0880", email = 'justgotpaid88@qq.com'}
+]
+requires-python = ">=3.9"
+dependencies = [ ]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"ta_formula" = ["*.pxd"]
+
+[tool.setuptools.package-dir]
+ta_formula = "ta_formula"
