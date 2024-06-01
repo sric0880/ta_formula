@@ -75,7 +75,7 @@ cdef BIAS(np.ndarray real, int timeperiod):
     return (real - ma) * 100 / ma
 
 
-cdef stream_BIAS(np.ndarray real, int timeperiod):
+cdef double stream_BIAS(np.ndarray real, int timeperiod):
     """
     乖离率
 
@@ -105,11 +105,9 @@ cdef recent_BIAS(np.ndarray real, int timeperiod, int calc_length):
     cdef:
         int length
         np.ndarray ma
-        cdef double[:] real_view
     length = <int>real.shape[0]
     ma = recent_SMA(real, timeperiod, calc_length)
-    real_view = real
-    return (real_view[length - calc_length: length] - ma) * 100 / ma
+    return (real[length - calc_length: length] - ma) * 100 / ma
 
 
 @wraparound(False)  # turn off relative indexing from end of lists
@@ -152,7 +150,7 @@ cdef recent_MACD( np.ndarray real, int fastperiod, int slowperiod , int signalpe
     retCode = lib.TA_MACD( <int>(length) - calc_length , <int>(length) - 1 , real_data , fastperiod , slowperiod , signalperiod , &outbegidx , &outnbelement , <double *>(dif.data) , <double *>(dea.data) , <double *>(outmacdhist.data) )
     _ta_check_success("TA_MACD", retCode)
     outmacdhist *= 2  # MACD = (DIF-DEA) * 2
-    return dif , dea , outmacdhist 
+    return dif, dea, outmacdhist
 
 
 @wraparound(False)  # turn off relative indexing from end of lists
@@ -218,7 +216,7 @@ cdef KD(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int
     """
     return STOCH( high, low, close, fastk_period, slowk_period * 2 - 1, 1, slowd_period * 2 - 1, 1)
 
-cdef stream_KD(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period):
+cdef tuple_double2 stream_KD(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period):
     """ stream_KD
 
     stream_KD (Momentum Indicators)
@@ -230,8 +228,8 @@ cdef stream_KD(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_peri
         slowk_period: 3
         slowd_period: 3
     Outputs:
-        k: (float)
-        d: (float)
+        k: (double)
+        d: (double)
     """
     cdef int kp = slowk_period * 2 - 1
     cdef int dp = slowd_period * 2 - 1
@@ -280,7 +278,7 @@ cdef KDJ(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, in
     k, d = STOCH( high, low, close, fastk_period, slowk_period * 2 - 1, 1, slowd_period * 2 - 1, 1)
     return k, d, (3 * k) - (2 * d)
 
-cdef stream_KDJ(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period):
+cdef tuple_double3 stream_KDJ(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period):
     """ stream_KDJ
 
     stream_KDJ (Momentum Indicators)
@@ -292,16 +290,16 @@ cdef stream_KDJ(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_per
         slowk_period: 3
         slowd_period: 3
     Outputs:
-        k: (float)
-        d: (float)
-        j: (float)
+        k: (double)
+        d: (double)
+        j: (double)
     """
     cdef int kp = slowk_period * 2 - 1
     cdef int dp = slowd_period * 2 - 1
     _ta_set_unstable_period(FUNC_UNST_IDS.ID_EMA, ema_unstable_periods[kp] + ema_unstable_periods[dp])
     cdef double k, d
-    k, d = stream_STOCH( high, low, close, fastk_period, kp, 1, dp, 1)
-    return k, d, (3 * k) - (2 * d)
+    k, d = stream_STOCH(high, low, close, fastk_period, kp, 1, dp, 1)
+    return (k, d, (3 * k) - (2 * d))
 
 cdef recent_KDJ(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period, int calc_length):
     """ recent_KDJ
@@ -405,7 +403,7 @@ cdef SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray close , int fastk_perio
     cdef np.ndarray d = SMA(k, slowkd_period)
     return k, d
 
-cdef stream_SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray close , int fastk_period, int slowkd_period):
+cdef tuple_double2 stream_SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray close , int fastk_period, int slowkd_period):
     """ stream_SLOW_KD
 
     stream_SLOW_KD (Momentum Indicators)
@@ -416,8 +414,8 @@ cdef stream_SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray close , int fast
         fastk_period: 9
         slowkd_period: 3
     Outputs:
-        k: (float)
-        d: (float)
+        k: (double)
+        d: (double)
     """
     cdef:
         int endidx
@@ -477,7 +475,7 @@ cdef AMPLITUDE(np.ndarray high, np.ndarray low, np.ndarray close, int timeperiod
     """
     return (high - low) / np_shift(close, timeperiod)
 
-cdef stream_AMPLITUDE(double[:] high, double[:] low, double[:] close, int timeperiod):
+cdef double stream_AMPLITUDE(double[:] high, double[:] low, double[:] close, int timeperiod):
     """stream_AMPLITUDE
 
     振幅：（最高价-最低价）/ 前N收盘价, 一般N为1
@@ -487,7 +485,7 @@ cdef stream_AMPLITUDE(double[:] high, double[:] low, double[:] close, int timepe
     Parameters:
         timeperiod: 1
     Outputs:
-        amplitude: (float)
+        amplitude: (double)
     """
     return (high[-1] - low[-1]) / close[-1 - timeperiod]
 
@@ -517,7 +515,7 @@ cdef ZIG(np.ndarray real, double perctg):
     Inputs:
         prices: ['real']
     Parameters:
-        perctg: (float)价格变化百分比
+        perctg: (double)价格变化百分比
     Outputs:
         points: (ndarray)拐点，非拐点用nan填充
     """

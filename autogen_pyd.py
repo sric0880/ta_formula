@@ -10,6 +10,9 @@ pxd_temp = """
 cimport numpy as np
 
 ctypedef np.double_t DTYPE_t
+ctypedef (double, double) tuple_double2
+ctypedef (double, double, double) tuple_double3
+ctypedef (double, double, double, double) tuple_double4
 
 #############################################
 # START GENCODE FUNCTIONS FROM '{filename}'

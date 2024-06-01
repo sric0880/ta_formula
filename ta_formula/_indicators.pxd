@@ -7,8 +7,9 @@
 cimport numpy as np
 
 ctypedef np.double_t DTYPE_t
-
-# ctypedef (double, double) D2
+ctypedef (double, double) tuple_double2
+ctypedef (double, double, double) tuple_double3
+ctypedef (double, double, double, double) tuple_double4
 
 #############################################
 # START GENCODE FUNCTIONS FROM '_bool_func.pxi'
@@ -458,7 +459,7 @@ cdef stream_LINEARREG_SLOPE( np.ndarray real , int timeperiod)
 cdef stream_LN( np.ndarray real )
 cdef stream_LOG10( np.ndarray real )
 cdef stream_MA( np.ndarray real , int timeperiod, int matype)
-cdef stream_MACD( np.ndarray real , int fastperiod, int slowperiod, int signalperiod)
+cdef tuple_double3 stream_MACD( np.ndarray real , int fastperiod, int slowperiod, int signalperiod)
 cdef stream_MACDEXT( np.ndarray real , int fastperiod, int fastmatype, int slowperiod, int slowmatype, int signalperiod, int signalmatype)
 cdef stream_MACDFIX( np.ndarray real , int signalperiod)
 cdef stream_MAMA( np.ndarray real , double fastlimit, double slowlimit)
@@ -494,7 +495,7 @@ cdef stream_SINH( np.ndarray real )
 cdef stream_SMA( np.ndarray real , int timeperiod)
 cdef stream_SQRT( np.ndarray real )
 cdef stream_STDDEV( np.ndarray real , int timeperiod, double nbdev)
-cdef stream_STOCH( np.ndarray high , np.ndarray low , np.ndarray close , int fastk_period, int slowk_period, int slowk_matype, int slowd_period, int slowd_matype)
+cdef tuple_double2 stream_STOCH( np.ndarray high , np.ndarray low , np.ndarray close , int fastk_period, int slowk_period, int slowk_matype, int slowd_period, int slowd_matype)
 cdef stream_STOCHF( np.ndarray high , np.ndarray low , np.ndarray close , int fastk_period, int fastd_period, int fastd_matype)
 cdef stream_STOCHRSI( np.ndarray real , int timeperiod, int fastk_period, int fastd_period, int fastd_matype)
 cdef stream_SUB( np.ndarray real0 , np.ndarray real1 )
@@ -525,21 +526,21 @@ cdef void np_shift_inplace(double[:] arr, int num)
 cdef np.ndarray np_shift(np.ndarray arr, int num)
 cdef recent_SMA( np.ndarray real , int timeperiod, int calc_length)
 cdef BIAS(np.ndarray real, int timeperiod)
-cdef stream_BIAS(np.ndarray real, int timeperiod)
+cdef double stream_BIAS(np.ndarray real, int timeperiod)
 cdef recent_BIAS(np.ndarray real, int timeperiod, int calc_length)
 cdef recent_MACD( np.ndarray real, int fastperiod, int slowperiod , int signalperiod, int calc_length )
 cdef recent_STOCH( np.ndarray high , np.ndarray low , np.ndarray close, int fastk_period, int slowk_period, int slowk_matype, int slowd_period, int slowd_matype, int calc_length)
 cdef KD(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period,)
-cdef stream_KD(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period)
+cdef tuple_double2 stream_KD(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period)
 cdef recent_KD( np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period, int calc_length)
 cdef KDJ(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period)
-cdef stream_KDJ(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period)
+cdef tuple_double3 stream_KDJ(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period)
 cdef recent_KDJ(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period, int calc_length)
 cdef SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray close , int fastk_period, int slowkd_period)
-cdef stream_SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray close , int fastk_period, int slowkd_period)
+cdef tuple_double2 stream_SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray close , int fastk_period, int slowkd_period)
 cdef recent_SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray close , int fastk_period, int slowkd_period, int calc_length)
 cdef AMPLITUDE(np.ndarray high, np.ndarray low, np.ndarray close, int timeperiod)
-cdef stream_AMPLITUDE(double[:] high, double[:] low, double[:] close, int timeperiod)
+cdef double stream_AMPLITUDE(double[:] high, double[:] low, double[:] close, int timeperiod)
 cdef recent_AMPLITUDE(np.ndarray[DTYPE_t, ndim=1] high, np.ndarray[DTYPE_t, ndim=1] low, np.ndarray[DTYPE_t, ndim=1] close, int timeperiod, int calc_length)
 cdef ZIG(np.ndarray real, double perctg)
 

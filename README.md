@@ -1,19 +1,19 @@
 # ta_formula
 
-TODO:
- 1. (double, double) tuple 优化
-1. 各种缓存
-2. interval 大小写
-3. asyncio测试
-4. 区间指标
-6. 额外返回字段
-
 ## 特性
 
 - 自定义指标，在TA-Lib库的基础上扩展自己的指标，完全在Cython中实现。
 - 自定义区间指标。
 - 自定义策略（同样纯Cython实现），根据参数和输入数据即时编译成动态链接库，实现微秒级信号发现（大概一个指标计算在0.5~5微秒）。
 - 数据流入、信号流出框架，自定义自己的数据源，支持asyncio，支持多线程，相同策略相同数据去重，避免重复计算。同一策略中相同指标的计算去重。
+
+## TODO:
+1. 所有`stream_XXX`指标函数，需要显式注明返回类型，比如int, double，或者tuple类型，比如(double, double)。如果不标明，返回的不是c类型，而是python类型，比如int返回的是PyInt。目前只有部分函数修改了。Cython不支持python对象的tuple，比如(np.ndarray, np.ndarray)。
+2. 各种缓存
+3. interval 大小写
+4. asyncio测试
+5. 区间指标
+6. 额外返回字段
 
 ## 使用
 

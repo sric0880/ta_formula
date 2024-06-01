@@ -3499,7 +3499,7 @@ cdef stream_MA( np.ndarray real , int timeperiod, int matype):
 
 @wraparound(False)  # turn off relative indexing from end of lists
 @boundscheck(False) # turn off bounds-checking for entire function
-cdef stream_MACD( np.ndarray real , int fastperiod, int slowperiod, int signalperiod):
+cdef tuple_double3 stream_MACD( np.ndarray real , int fastperiod, int slowperiod, int signalperiod):
     """ MACD(real[, fastperiod=?, slowperiod=?, signalperiod=?])
 
     Moving Average Convergence/Divergence (Momentum Indicators)
@@ -3534,7 +3534,7 @@ cdef stream_MACD( np.ndarray real , int fastperiod, int slowperiod, int signalpe
     retCode = lib.TA_MACD( <int>(length) - 1 , <int>(length) - 1 , real_data , fastperiod , slowperiod , signalperiod , &outbegidx , &outnbelement , &outmacd , &outmacdsignal , &outmacdhist )
     _ta_check_success("TA_MACD", retCode)
     outmacdhist *= 2  # ADDED BY ME
-    return outmacd , outmacdsignal , outmacdhist 
+    return (outmacd , outmacdsignal , outmacdhist)
 
 @wraparound(False)  # turn off relative indexing from end of lists
 @boundscheck(False) # turn off bounds-checking for entire function
@@ -4638,7 +4638,7 @@ cdef stream_STDDEV( np.ndarray real , int timeperiod, double nbdev):
 
 @wraparound(False)  # turn off relative indexing from end of lists
 @boundscheck(False) # turn off bounds-checking for entire function
-cdef stream_STOCH( np.ndarray high , np.ndarray low , np.ndarray close , int fastk_period, int slowk_period, int slowk_matype, int slowd_period, int slowd_matype):
+cdef tuple_double2 stream_STOCH( np.ndarray high , np.ndarray low , np.ndarray close , int fastk_period, int slowk_period, int slowk_matype, int slowd_period, int slowd_matype):
     """ STOCH(high, low, close[, fastk_period=?, slowk_period=?, slowk_matype=?, slowd_period=?, slowd_matype=?])
 
     Stochastic (Momentum Indicators)
@@ -4676,7 +4676,7 @@ cdef stream_STOCH( np.ndarray high , np.ndarray low , np.ndarray close , int fas
     outslowd = NaN
     retCode = lib.TA_STOCH( <int>(length) - 1 , <int>(length) - 1 , high_data , low_data , close_data , fastk_period , slowk_period , slowk_matype , slowd_period , slowd_matype , &outbegidx , &outnbelement , &outslowk , &outslowd )
     _ta_check_success("TA_STOCH", retCode)
-    return outslowk , outslowd 
+    return (outslowk , outslowd)
 
 @wraparound(False)  # turn off relative indexing from end of lists
 @boundscheck(False) # turn off bounds-checking for entire function
