@@ -26,19 +26,20 @@ class _BaseDataBackend:
         self.bid = bid
         self.config = config
         self._all_datas = defaultdict(dict)
-        self._all_datas_update_flags = defaultdict(defaultdict(float))
-        self._condition = threading.Condition()
+        self._calc_units = set()
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f'{self.__class__.__name__}({self.bid}, {self.config})'
 
-    def _create_condition(self):
-        pass
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}({self.bid})'
+
+    def _prepare(self, symbols: list, intervals: list):
+        self.prepare(symbols, intervals)
 
     def on_update(self, symbol, interval):
-        self._all_datas_update_flags[symbol][interval] += 0.01 # 表示数据有更新
-        with self._condition:
-            self._condition.notify_all()
+        for unit in self._calc_units:
+            unit.on_update(symbol, interval)
 
     def add_data(self, symbol, interval, data):
         if not isinstance(data, dict):
@@ -52,6 +53,11 @@ class _BaseDataBackend:
 class DataBackend(_BaseDataBackend):
     def __init__(self, bid, config) -> None:
         super().__init__(bid, config)
+        self._lock = threading.Lock()
+
+    def _prepare(self, symbols: list, intervals: list):
+        with self._lock:
+            self.prepare(symbols, intervals)
 
     def prepare(self, symbols: list, intervals: list):
         '''
@@ -65,9 +71,6 @@ class DataBackend(_BaseDataBackend):
             `symbols`: 是金融产品的代码列表
             `intervals`: 是数据频率，可以是'1m','1D', 或者'tick'
         '''
-
-    def _create_future(self):
-        return threading.Condition()
 
     def close(self):
         pass
@@ -90,9 +93,6 @@ class AioDataBackend(_BaseDataBackend):
             `intervals`: 是数据频率，可以是'1m','1D', 或者'tick'
         '''
 
-    def _create_future(self):
-        pass
-
     async def close(self):
         pass
 
@@ -105,6 +105,7 @@ def add_backend(claname: str, bid: str, config: dict):
     if bid not in data_backends:
         cls = _registered_backends[claname]
         data_backends[bid] = backend = cls(bid, config)
+        logging.debug(f'{backend} Added')
         return backend
     else:
         return data_backends[bid]
@@ -113,12 +114,15 @@ def add_backend(claname: str, bid: str, config: dict):
 def _(instance: DataBackend):
     if instance.bid not in data_backends:
         data_backends[instance.bid] = instance
-    return instance
+        logging.debug(f'{instance} Added')
+    return data_backends[instance.bid]
 
 @add_backend.register
 def _(instance: AioDataBackend):
-    data_backends[instance.bid] = instance
-    return instance
+    if instance.bid not in data_backends:
+        data_backends[instance.bid] = instance
+        logging.debug(f'{instance} Added')
+    return data_backends[instance.bid]
 
 def get_backend(bid: str):
     try:
@@ -132,16 +136,9 @@ def get_backends(bids):
 
 
 def close_all_backends():
-    async_closes = []
     for bid, backend in data_backends.items():
-        if iscoroutinefunction(backend.close):
-            async_closes.append(asyncio.create_task(backend.close(), bid=bid))
-        else:
-            backend.close()
-            logging.info(f"数据后台 {bid} 关闭")
-    if async_closes:
-        for f in asyncio.as_completed(async_closes):
-            logging.info(f"数据后台 {f.get_name()} 关闭")
+        backend.close()
+        logging.debug(f"{backend!r} Shutdown")
     data_backends.clear()
 
 
@@ -154,7 +151,7 @@ async def close_all_backends_async():
             async_closes.append(
                 asyncio.get_event_loop().run_in_executor(None, backend.close)
             )
-        logging.info(f"数据后台 {bid} 关闭")
+        logging.debug(f"{backend!r} Shutdown")
     if async_closes:
         await asyncio.gather(async_closes)
     data_backends.clear()

@@ -2,67 +2,133 @@ import asyncio
 import logging
 import threading
 from collections import defaultdict
-from concurrent.futures import Future, as_completed
-from contextlib import asynccontextmanager, contextmanager
+from concurrent import futures
 from inspect import iscoroutinefunction
 
 from .datasource import get_backend
 from .strategy import get_strategy
 
-__all__ = ['open_dataflow_async', 'open_dataflow']
+__all__ = ['open_signal_stream']
 
 class _CalculationCenter:
     def __init__(self) -> None:
         self.calc_units = {}
+        # 引用计数需要原子操作
+        self._lock = threading.Lock()
+        self.ref_counts = defaultdict(int)
 
     def push(self, strategy, symbol_infos):
         _hash = hash((strategy._hash, tuple((db.bid, symbol, *intervals) for db, symbol, intervals in symbol_infos)))
-        unit = self.calc_units.get(_hash, None)
-        if unit is None:
-            self.calc_units[_hash] = unit = _CalculateUnit(strategy, symbol_infos)
-            unit._hash = _hash
+        with self._lock:
+            self.ref_counts[_hash] += 1
+            unit = self.calc_units.get(_hash, None)
+            if unit is None:
+                self.calc_units[_hash] = unit = _CalculateUnit(strategy, symbol_infos, _hash)
+                logging.debug(f'{unit}: New. Ref count {self.ref_counts[_hash]}')
+            else:
+                logging.debug(f'{unit}: Ref plus. Count {self.ref_counts[_hash]}')
         return unit
 
-    def signal_from(self, units):
-        datas_ready = threading.Event()
-        for unit in units:
-            unit.register_event(datas_ready)
-        while True:
-            if datas_ready.wait(timeout=0.1):
-                for unit in units:
-                    if unit.datas_ready:
-                        yield unit.calculate()
-
-    def pop(self):
-        pass
+    def pop(self, unit):
+        _hash = unit._hash
+        with self._lock:
+            ref = self.ref_counts[_hash]
+            if ref == 0:
+                logging.error(f'{unit}: Ref is zero, cannot pop.')
+                return
+            ref -= 1
+            self.ref_counts[_hash] = ref
+            if ref == 0:
+                logging.debug(f'{unit}: Delete. Ref count {ref}')
+                unit = self.calc_units.pop(_hash)
+                unit.release()
+            else:
+                logging.debug(f'{unit}: Ref minus. Count {ref}')
 
 calculation_center = _CalculationCenter()
 
 
 class _CalculateUnit:
-    def __init__(self, strategy, symbol_infos) -> None:
-        self.events = []
-        self.datas_ready = False
-        self.cached_result = None
+    def __init__(self, strategy, symbol_infos, _hash) -> None:
+        self.fut = futures.Future()
         self.strategy = strategy
-        self.calc_lock = threading.Lock()
+        self.symbol_infos = symbol_infos
+        self._hash = _hash
+        self.datas_list = [None]*len(strategy.datas_interface)
+        self.datas_consistent = {}
+        datas = []
+        for db, symbol, intervals in symbol_infos:
+            self.datas_consistent[symbol] = (len(intervals), { interval: 0 for interval in intervals})
+            db._calc_units.add(self)
+            datas.append([db._all_datas[symbol][interval] for interval in intervals])
+        strategy.feed_external_datas(datas, self.datas_list)
 
-    def register_event(self, event):
-        self.events.append(event)
+    def release(self):
+        for db, _, _ in self.symbol_infos:
+            try:
+                db._calc_units.remove(self)
+            except KeyError:
+                pass
 
-    def calculate(self):
-        with self.calc_lock:
-            if self.datas_ready:
-                self.cached_result = self.strategy.calculate()
+    def on_update(self, symbol, interval):
+        intervals = self.datas_consistent.get(symbol, None)
+        if not intervals:
+            return
+        intervals = intervals[1]
+        if interval not in intervals:
+            return
+        intervals[interval] = 1
 
+        if self._is_datas_consistent():
+            self._reset_datas_consistent()
+            signal = self.strategy.calculate_x(self.datas_list)
+            self.fut.set_result(signal)
+            new_fut = futures.Future()
+            new_fut._waiters = self.fut._waiters
+            self.fut = new_fut
 
-def open_dataflow(request):
+    def _is_datas_consistent(self):
+        ''' 同一标的的不同频率的数据，要么全部没更新，要么全部更新'''
+        all_zero = True
+        for full_count, intervals in self.datas_consistent.values():
+            state = sum(intervals.values())
+            if state > 0:
+                if state < full_count:
+                    return False
+                all_zero = False
+        if all_zero:
+            return False
+        return True
+
+    def _reset_datas_consistent(self):
+        for _, intervals in self.datas_consistent.values():
+            for interval in intervals.keys():
+                intervals[interval] = 0
+
+    def _add_waiter(self, waiter):
+        self.fut._waiters.append(waiter)
+
+    def _remove_waiter(self, waiter):
+        with self.fut._condition:
+            self.fut._waiters.remove(waiter)
+
+    def __hash__(self) -> int:
+        return self._hash
+
+    def __eq__(self, value: object) -> bool:
+        return id(self) == id(value)
+
+    def __str__(self):
+        return f'{self.__class__.__name__}({self.strategy}, {self.symbol_infos}, {self._hash})'
+
+def open_signal_stream(request):
     datasources = request['datasources']
-    strategy = get_strategy(request['strategy_name'], request['params'], request['return_fields'])
+    strategy = get_strategy(request['pyx_file'], request['params'], request['return_fields'])
     datas_struct = request['datas'] if 'datas' in request else strategy.datas_struct
     datasources = _parse_datasources(datasources)
-    call_prepare_args = _prepare_arguments(datasources, strategy)
-    _batch_call_backend_method(call_prepare_args) # 准备所有需要的数据
+    # 准备所有需要的数据
+    call_prepare_args = _prepare_arguments(datasources, datas_struct)
+    _batch_call_backend_method(call_prepare_args)
     units = []
     for dss in datasources:
         symbol_infos = []
@@ -70,63 +136,37 @@ def open_dataflow(request):
             symbol_infos.append((db, symbol, intervals))
         units.append(calculation_center.push(strategy, symbol_infos))
 
+    _waiter = futures._base._FirstCompletedWaiter()
+    for unit in units:
+        unit._add_waiter(_waiter)
     try:
-        yield from calculation_center.signal_from(units)
-    except:
-        pass
+        while True:
+            if _waiter.event.wait(timeout=0.1):
+                for fut in _waiter.finished_futures:
+                    yield fut.result()
+                _waiter.finished_futures = []
+                _waiter.event.clear()
     finally:
-        calculation_center.pop(units)
-
-        # datas_list = []
-        # datas_futures_list = []
-        # all_futures = set()
-        # for dss in datasources:
-        #     datas = []
-        #     datas_futures = []
-        #     for (db, symbol), intervals in zip(dss, strategy.datas_struct):
-        #         datas.append([db.all_datas[symbol][interval] for interval in intervals])
-        #         futs = [db._futures[symbol][interval] for interval in intervals]
-        #         datas_futures.append(futs)
-        #         # all_futures+=futs
-        #         all_futures.update(*futs)
-        #     datas_list.append(datas)
-        #     datas_futures_list.append(datas_futures)
-
-        # all_futures = list(all_futures)
-        # all_datas_list = list(zip(datas_list, datas_futures_list))
-
-        # calculation_tasks = []
-
-        # def _signal_generator():
+        for unit in units:
+            unit._remove_waiter(_waiter)
+            calculation_center.pop(unit)
 
 
-        # strategy.feed_datas(datas)
-        # strategy.calculate()
-
-        # yield _signal_generator()
-
-def _prepare_arguments(datasources, strategy):
+def _prepare_arguments(datasources, datas_struct):
     ret = []
-    for symbols, intervals in zip(zip(*datasources), strategy.datas_struct):
+    for symbols, intervals in zip(zip(*datasources), datas_struct):
         symbols_by_db = defaultdict(set)
         for db, _symbol in symbols:
             symbols_by_db[db].add(_symbol)
         for db, _symbols_by_db in symbols_by_db.items():
-            ret.append((db, 'prepare', list(_symbols_by_db), intervals))
+            ret.append((db, '_prepare', list(_symbols_by_db), intervals))
     return ret
 
 
 def _batch_call_backend_method(arguments):
-    async_funcs = []
     for backend, funcname, *args in arguments:
         func = getattr(backend, funcname)
-        if iscoroutinefunction(func):
-            async_funcs.append(asyncio.create_task(func(*args)))
-        else:
-            func(*args) # 准备好这些数据字段，一直等待准备好为止
-    if async_funcs:
-        for f in asyncio.as_completed(async_funcs):
-            pass
+        func(*args) # 准备好这些数据字段，一直等待准备好为止
 
 
 async def _batch_call_backend_method_async(arguments):

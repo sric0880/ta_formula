@@ -1,4 +1,5 @@
 import importlib
+import logging
 import os
 import re
 import tempfile
@@ -37,14 +38,19 @@ if not os.path.exists(package_init_py):
         f.write("")
 
 
+def _get_strategy_hash(pyx_file, params, return_fileds):
+    return hash(frozenset(chain((pyx_file,), params.items(), return_fileds)))
+
 class Strategy:
     strategies_home_dir = '.' # 当pyx_file传入相对路径时，默认在此目录下查找
 
-    def __init__(self, pyx_file: str, params: dict, return_fileds: list):
+    def __init__(self, pyx_file: str, params: dict, return_fileds: list, _hash: int = 0):
+        if _hash == 0:
+            _hash = _get_strategy_hash(pyx_file, params, return_fileds)
+        self._hash = _hash
         if not os.path.isabs(pyx_file):
             pyx_file = os.path.join(self.strategies_home_dir, pyx_file)
-        pyx_filename = os.path.basename(pyx_file)
-        # self.pyx_file = pyx_file
+        self.pyx_filename = os.path.basename(pyx_file)
         pyx_struct = {}
         pyx_struct["scalar_params"] = {}
         pyx_struct["datas_params"] = {}
@@ -89,11 +95,14 @@ class Strategy:
         )
 
         # compile
-        with tempfile.NamedTemporaryFile('w', suffix=pyx_filename, encoding='utf8', dir=_temp_pyx_folder, delete=False) as temp_pyx:
+        with tempfile.NamedTemporaryFile('w', suffix=self.pyx_filename, encoding='utf8', dir=_temp_pyx_folder, delete=False) as temp_pyx:
             temp_pyx.write(self.pyx_strategy)
         try:
             modulename = os.path.basename(temp_pyx.name)
+            old_level = logging.getLogger().level
+            # BUG: pyximport will change the level of root logger
             calculator = importlib.import_module('ta_formula_strategies.'+modulename.replace('.pyx', ''))
+            logging.getLogger().setLevel(old_level)
             self.calculate = lambda: calculator.calculate(*self.datas_list)
             self.calculate_x = lambda x: calculator.calculate(*x)
         finally:
@@ -103,12 +112,21 @@ class Strategy:
             except:
                 pass
 
-    def __str__(self):
+    def __repr__(self) -> str:
         return self.pyx_strategy
+
+    def __str__(self) -> str:
+        return f'{self.pyx_filename}_{self._hash}'
     
     def feed_datas(self, datas):
+        ''' 数据保存在strategy中，直接调用`calculate` '''
         for i, (k, v) in enumerate(self.datas_interface):
             self.datas_list[i] = eval(v, {}, {"datas": datas})
+
+    def feed_external_datas(self, datas, datas_list):
+        ''' 数据保存在外部的`datas`中，调用`calculate_x`将`datas`传入，用于策略共享 '''
+        for i, (k, v) in enumerate(self.datas_interface):
+            datas_list[i] = eval(v, {}, {"datas": datas})
 
     def _process_line(self, l: str, pyx_struct):
         if not l:
@@ -140,9 +158,8 @@ strategy_center = {}
 
 def get_strategy(pyx_file: str, params: dict, return_fileds: list):
     # 优先从策略中心取
-    _hash = hash(frozenset(chain((pyx_file,), params.items(), return_fileds)))
+    _hash = _get_strategy_hash(pyx_file, params, return_fileds)
     strategy = strategy_center.get(_hash, None)
     if strategy is None:
-        strategy_center[_hash] = strategy = Strategy(pyx_file, params, return_fileds)
-        strategy._hash = _hash
+        strategy_center[_hash] = strategy = Strategy(pyx_file, params, return_fileds, _hash)
     return strategy

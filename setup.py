@@ -41,13 +41,6 @@ ext_modules = [
         libraries=[lib_talib_name],
         runtime_library_dirs=[] if sys.platform == 'win32' else library_dirs,
         define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],),
-
-    Extension(
-        'ta_formula.test_strategy',
-        ['ta_formula/test_strategy.pyx'],
-        include_dirs=include_dirs,
-        library_dirs=['./ta_formula'],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")]),
 ]
 
 setup(ext_modules=ext_modules)
