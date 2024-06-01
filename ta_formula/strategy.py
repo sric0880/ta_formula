@@ -2,15 +2,15 @@ import importlib
 import os
 import re
 import tempfile
-from collections import defaultdict
 from distutils.sysconfig import get_python_lib
+from itertools import chain
 
 import numpy as np
 from pyximport import pyximport
 
 pyximport.install(build_in_temp=False, setup_args={'include_dirs': np.get_include()})
 
-__all__ = ['Strategy']
+__all__ = ['Strategy', 'get_strategy']
 
 pyx_strategy_temp = """
 # THIS IS AUTO GENERATED FILE, DO NOT MODIFY THIS FILE
@@ -95,6 +95,7 @@ class Strategy:
             modulename = os.path.basename(temp_pyx.name)
             calculator = importlib.import_module('ta_formula_strategies.'+modulename.replace('.pyx', ''))
             self.calculate = lambda: calculator.calculate(*self.datas_list)
+            self.calculate_x = lambda x: calculator.calculate(*x)
         finally:
             try:
                 os.remove(temp_pyx.name)
@@ -134,3 +135,14 @@ class Strategy:
                     pyx_struct["datas_params"][var] = value
         else:
             pyx_struct["ret"] += l + "\n"
+
+strategy_center = {}
+
+def get_strategy(pyx_file: str, params: dict, return_fileds: list):
+    # 优先从策略中心取
+    _hash = hash(frozenset(chain((pyx_file,), params.items(), return_fileds)))
+    strategy = strategy_center.get(_hash, None)
+    if strategy is None:
+        strategy_center[_hash] = strategy = Strategy(pyx_file, params, return_fileds)
+        strategy._hash = _hash
+    return strategy

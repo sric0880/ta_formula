@@ -25,48 +25,73 @@ class _BaseDataBackend:
     def __init__(self, bid, config) -> None:
         self.bid = bid
         self.config = config
+        self._all_datas = defaultdict(dict)
+        self._all_datas_update_flags = defaultdict(defaultdict(float))
+        self._condition = threading.Condition()
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({self.bid}, {self.config})'
 
+    def _create_condition(self):
+        pass
+
+    def on_update(self, symbol, interval):
+        self._all_datas_update_flags[symbol][interval] += 0.01 # 表示数据有更新
+        with self._condition:
+            self._condition.notify_all()
+
+    def add_data(self, symbol, interval, data):
+        if not isinstance(data, dict):
+            return
+        # 不能覆盖以前的数据
+        if interval in self._all_datas[symbol]:
+            return
+        self._all_datas[symbol][interval] = data
+
+
 class DataBackend(_BaseDataBackend):
     def __init__(self, bid, config) -> None:
         super().__init__(bid, config)
-        self._conditions = defaultdict(threading.Semaphore)
 
-    def prepare(self, out: dict, symbols: list, intervals: list):
+    def prepare(self, symbols: list, intervals: list):
         '''
-        需要准备`symbols`下的所有`intervals`数据
+        需要准备`symbols`下的所有`intervals`数据，准备好的数据调用`add_data`更新
 
-        每次策略开始前只调用一次，如果已经准备好的数据，再次准备无效
+        每次策略开始前只调用一次，数据准备准备好之后，需要调用`on_update`通知策略
 
-        `symbols`是金融产品的代码列表
+        如果是多线程或异步更新数据，可以准备`{}`空数据，在数据到达之后，再更新这个`{}`并调用`on_update`
 
-        `intervals`是数据频率，可以是'1m','1D', 或者'tick'
-
-        所有准备好的数据保存在out中
+        参数：
+            `symbols`: 是金融产品的代码列表
+            `intervals`: 是数据频率，可以是'1m','1D', 或者'tick'
         '''
-        pass
+
+    def _create_future(self):
+        return threading.Condition()
 
     def close(self):
         pass
+
 
 class AioDataBackend(_BaseDataBackend):
     def __init__(self, bid, config) -> None:
         super().__init__(bid, config)
 
-    async def prepare(self, out: dict, symbols: list, intervals: list):
+    async def prepare(self, symbols: list, intervals: list):
         '''
-        需要准备`symbols`下的所有`intervals`数据
+        需要准备`symbols`下的所有`intervals`数据，准备好的数据调用`add_data`更新
 
-        每次策略开始前只调用一次，如果已经准备好的数据，再次准备无效
+        每次策略开始前只调用一次，数据准备准备好之后，需要调用`on_update`通知策略
 
-        `symbols`是金融产品的代码列表
+        如果是多线程或异步更新数据，可以准备`{}`空数据，在数据到达之后，再更新这个`{}`并调用`on_update`
 
-        `intervals`是数据频率，可以是'1m','1D', 或者'tick'
-
-        所有准备好的数据保存在out中
+        参数：
+            `symbols`: 是金融产品的代码列表
+            `intervals`: 是数据频率，可以是'1m','1D', 或者'tick'
         '''
+
+    def _create_future(self):
+        pass
 
     async def close(self):
         pass
