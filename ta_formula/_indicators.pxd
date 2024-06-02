@@ -543,6 +543,7 @@ cdef AMPLITUDE(np.ndarray high, np.ndarray low, np.ndarray close, int timeperiod
 cdef double stream_AMPLITUDE(double[:] high, double[:] low, double[:] close, int timeperiod)
 cdef recent_AMPLITUDE(np.ndarray[DTYPE_t, ndim=1] high, np.ndarray[DTYPE_t, ndim=1] low, np.ndarray[DTYPE_t, ndim=1] close, int timeperiod, int calc_length)
 cdef ZIG(np.ndarray real, double perctg)
+cdef PERIOD_MAX_BIAS(np.ndarray close, int ma_timeperiod, int period_nums)
 
 # END GENCODE FUNCTIONS FROM '_indicators.pyx'
 #############################################

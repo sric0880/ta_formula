@@ -3,6 +3,7 @@ include "_ta_lib_common.pxi"
 include "_unstable_periods.pxi"
 include "_ta_lib_func.pxi"
 include "_ta_lib_stream.pxi"
+include "_period_indicators.pxi"
 
 from cython import boundscheck, wraparound
 
@@ -565,3 +566,19 @@ cdef ZIG(np.ndarray real, double perctg):
     #     points_view[?] = min_close
     points_view[length-1] = last_price
     return points
+
+
+cdef PERIOD_MAX_BIAS(np.ndarray close, int ma_timeperiod, int period_nums):
+    """PERIOD_MAX_BIAS
+
+    区间最大BIAS，按一根均线拐头确认拐点，从拐点开始取区间最大BIAS值
+
+    Inputs:
+        prices: ['close']
+    Parameters:
+        ma_timeperiod: (int)均线周期大小
+        period_nums: (int)返回的区间段数，1表示最近一段，0表示所有段
+    Outputs:
+        BIAS: (ndarray) 所有区间的BIAS值
+    """
+    return PeriodMaxBias(close, ma_timeperiod).calc_period_indi(period_nums)
