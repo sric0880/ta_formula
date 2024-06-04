@@ -8,42 +8,88 @@
 
 - 自定义指标，在TA-Lib库的基础上扩展自己的指标，完全在Cython中实现。
 - 自定义区间指标。
-- 自定义策略（同样纯Cython实现），根据参数和输入数据即时编译成动态链接库，实现微秒级信号发现（普通台式机CPU i5-10400 @2.9GHz 大概一个指标计算在0.5~5微秒）。
-- 数据流入、信号流出框架，自定义自己的数据源，支持asyncio，支持多线程，相同策略相同数据去重，避免重复计算。同一策略中相同指标的计算去重。
+- 自定义策略（同样纯Cython实现），根据参数和输入数据即时编译成动态链接库，实现微秒级信号发现
+  - 普通台式机CPU i5-10400 @2.9GHz 大概一个指标计算在0.5~5微秒
+  - 支持传入不同市场多个标的物
+  - 支持传参
+  - 支持自定义返回字段
+  - 一次计算中，相同指标计算结果缓存，不重复计算
+- 数据流入、信号流出框架，自定义自己的数据源，支持asyncio，支持多线程，相同策略相同数据去重，避免重复计算。
 
 ## 策略文件示例
 
 ```py
 cimport ta_formula._indicators as ta
+cimport numpy as np
 
+# define datas intervals
 datas = [['1m']]
+
+# define constant params
 kdj_minvalue = 10
 kdj_maxvalue = 90
 
+# define datas params
 CLOSE = datas[0][0]['close']
 HIGH = datas[0][0]['high']
 LOW = datas[0][0]['low']
 
+# define indicators
+ma5: np.ndarray = ta.SMA(CLOSE, 5)
+ma250: np.ndarray = ta.SMA(CLOSE, 250)
+skd: ta.tuple_double2 = ta.stream_SLOW_KD(HIGH, LOW, CLOSE, 69, 3)
+
+# define signals
 ret = {
-    'open_long_condition1': ta.kup(ta.SMA(CLOSE, 250),-1),
-    'open_short_condition1': ta.kdown(ta.SMA(CLOSE, 250),-1),
-    'open_long_condition2': ta.stream_SLOW_KD(HIGH, LOW, CLOSE, 69, 3)[0] <= kdj_minvalue,
-    'open_short_condition2': ta.stream_SLOW_KD(HIGH, LOW, CLOSE, 69, 3)[0] >= kdj_maxvalue,
-    'close_long': ta.stream_SLOW_KD(HIGH, LOW, CLOSE, 69, 3)[0] >= kdj_maxvalue,
-    'close_short': ta.stream_SLOW_KD(HIGH, LOW, CLOSE, 69, 3)[0] <= kdj_minvalue,
+    'open_long_condition1': ta.kup(ma250,-1) and ta.crossdown(ma5, ma250, -1),
+    'open_short_condition1': ta.kdown(ma250,-1) and ta.crossup(ma5, ma250, -1),
+    'open_long_condition2': skd[0] <= kdj_minvalue and CLOSE[-1] > ma250,
+    'open_short_condition2': skd[0] >= kdj_maxvalue and CLOSE[-1] < ma250,
+    'close_long': skd[0] >= kdj_maxvalue,
+    'close_short': skd[0] <= kdj_minvalue,
+    'last_close_price': CLOSE[-1],
+    'last_ma250': ma250[-1],
 }
 ```
 
 见 [test_strategy.pyx](https://github.com/sric0880/ta_formula/blob/main/test_strategy.pyx)
 
-## TODO:
+返回示例：
+
+```json
+{
+  "symbols": [["shanghai001", "ag2412"]],
+  "last_data_time": 1716514860,
+  "data_rec_time": 1717486288.8170903,
+  "calc_time": 269900,
+  "open_long_condition1": false,
+  "open_short_condition1": false,
+  "open_long_condition2": false,
+  "open_short_condition2": false,
+  "close_long": false,
+  "close_short": false,
+  "last_close_price": 7952.0,
+  "last_ma250": 7922.2
+}
+```
+
+其中`symbols`, `last_data_time`、`data_rec_time`、`calc_time`为附加返回字段，分别表示:
+
+- symbols返回当前策略计算用的金融标的组合
+- 最新数据（K线或Tick）时间, K线时间一般单位为秒(int)，Tick单位是毫秒(int)
+- 接收到数据的时间戳，单位秒，float，系统时间可能有误差
+- 策略从接收数据，到计算完成，发送信号经过的时间，单位纳秒，int
+
+通过比较三者的时间差，可以大致知道计算延迟和网络延迟
+
+其他字段为自定义返回字段
+
+## TODO
+
 1. 所有`stream_XXX`指标函数，需要显式注明返回类型，比如int, double，或者tuple类型，比如(double, double)。如果不标明，返回的不是c类型，而是python类型，比如int返回的是PyInt。目前只有部分函数修改了。Cython不支持python对象的tuple，比如(np.ndarray, np.ndarray)。
 2. ZIG、PERIOD_MAX_BIAS 没有stream和recent函数
-
-2. 各种缓存
 3. interval 大小写
 4. asyncio测试
-6. 额外返回字段
 
 ## 指标
 

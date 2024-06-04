@@ -39,7 +39,7 @@ class _BaseDataBackend:
 
     def on_update(self, symbol, interval):
         for unit in self._calc_units:
-            unit.on_update(symbol, interval)
+            unit.on_update(self.bid, symbol, interval)
 
     def add_data(self, symbol, interval, data):
         if not isinstance(data, dict):
