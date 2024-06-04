@@ -23,7 +23,7 @@ cache_func_no_return_type_temp = '''
         return _{id}
 '''
 
-def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list):
+def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool):
     '''
     必须有datas字段
     必须有ret字段
@@ -107,7 +107,11 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list):
         return f'{match.group(0)}()'
     pyx_struct["ret"] = re.sub('|'.join(r'\b{}\b'.format(k) for k in indicator_ids), replace2, pyx_struct["ret"])
 
+    ret_key_strs = [k.value for k in ret_keys]
     data_params = [field for field,_ in pyx_struct['datas_interface']]
+    if debug:
+        debug_str = str.join(', ', [f"'debug_{field}': {field}" for field in data_params])
+        ret_key_strs += [f'debug_{field}' for field in data_params]
     cache_funcs = []
     for _id, (ann, func) in pyx_struct['indicators'].items():
         if ann is None:
@@ -115,7 +119,13 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list):
         else:
             cf = cache_func_with_return_type_temp.format(id=_id, func=func, return_type=ann)
         cache_funcs.append(cf)
-    ret_str= _dict_formatter(pyx_struct["ret"], ret_keys)
+        if debug:
+            ret_key_strs.append(f'debug_{_id}')
+            debug_str += ', '
+            debug_str += f"'debug_{_id}': {_id}()"
+    if debug:
+        pyx_struct["ret"] = pyx_struct["ret"][:-1] + ', ' + debug_str + '}'
+    ret_str= _dict_formatter(pyx_struct["ret"], ret_key_strs)
     code = f"""
 # THIS IS AUTO GENERATED FILE, DO NOT MODIFY THIS FILE
 
@@ -134,7 +144,7 @@ def calculate({str.join(', ', ['np.ndarray '+field for field in data_params])}):
 key_value_pair = re.compile(r"[\'\"](\w+)[\'\"]\s*:(.*)")
 def _dict_formatter(dict_str: str, keys):
     # 选择性返回结果
-    s = [dict_str.index(k.value)-1 for k in keys]
+    s = [dict_str.index(k)-1 for k in keys]
     rebuild_dict = '{\n'
     for i, j in zip(s, s[1:]+[-1]):
         m = re.match(key_value_pair, dict_str[i:j])
@@ -144,5 +154,5 @@ def _dict_formatter(dict_str: str, keys):
     return rebuild_dict
 
 if __name__ == '__main__':
-    code, pyx_struct = parse_pyx_file('test_strategy.pyx', {}, ['open', 'close'])
+    code, pyx_struct = parse_pyx_file('test_strategy.pyx', {}, ['open', 'close'], False)
     print(code)

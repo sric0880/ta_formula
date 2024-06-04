@@ -27,7 +27,7 @@ def _get_strategy_hash(pyx_file, params, return_fileds):
 class Strategy:
     strategies_home_dir = '.' # 当pyx_file传入相对路径时，默认在此目录下查找
 
-    def __init__(self, pyx_file: str, params: dict, return_fileds: list, _hash: int = 0):
+    def __init__(self, pyx_file: str, params: dict, return_fileds: list, _hash: int = 0, debug=False):
         if _hash == 0:
             _hash = _get_strategy_hash(pyx_file, params, return_fileds)
         self._hash = _hash
@@ -35,7 +35,7 @@ class Strategy:
             pyx_file = os.path.join(self.strategies_home_dir, pyx_file)
         self.pyx_filename = os.path.basename(pyx_file)
 
-        self.pyx_code, pyx_struct = parse_pyx_file(pyx_file, params, return_fileds)
+        self.pyx_code, pyx_struct = parse_pyx_file(pyx_file, params, return_fileds, debug)
         self.datas_interface = pyx_struct['datas_interface']
         self.datas_list = [None]*len(self.datas_interface)
 

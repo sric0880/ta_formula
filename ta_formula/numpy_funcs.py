@@ -1,4 +1,4 @@
-# 这个版本和cython编译的版本差不多
+# 这个版本和cython编译的版本性能差不多
 # 直接使用_indicators模块下的np_shift
 # 不依赖numba
 import numba

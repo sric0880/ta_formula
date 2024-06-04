@@ -4,6 +4,14 @@
 
 参考 [examples.ipynb](https://github.com/sric0880/ta_formula/blob/main/examples.ipynb)
 
+所有移动平均算法参考 [matype.md](https://github.com/sric0880/ta_formula/blob/main/matype.md)
+
+## 依赖库
+
+- [ta-lib底层c库](https://anaconda.org/conda-forge/libta-lib/files)
+- numpy>=1.26.4
+- Cython>=3.0.10
+
 ## 特性
 
 - 自定义指标，在TA-Lib库的基础上扩展自己的指标，完全在Cython中实现。
@@ -90,6 +98,8 @@ ret = {
 2. ZIG、PERIOD_MAX_BIAS 没有stream和recent函数
 3. interval 大小写
 4. asyncio测试
+5. 替换intervals
+6. 支持输出debug信息
 
 ## 指标
 
