@@ -3,7 +3,8 @@ import logging
 import threading
 import time
 from collections import defaultdict
-from concurrent import futures
+
+from .calculation_misc import _ConsistentFlag, _Data
 
 __all__ = ['calculation_center']
 
@@ -42,35 +43,12 @@ class _CalculationCenter:
             else:
                 logging.debug(f'{unit}: Ref minus. Count {ref}')
 
+
 calculation_center = _CalculationCenter()
 
 
-class _ConsistentFlag:
-    __slots__ = ['states', '_full_state']
-    def __init__(self, full_state) -> None:
-        self._full_state = full_state
-        self.states = [False]*full_state
-
-    def consistent(self):
-        first_state = self.states[0]
-        for state in self.states:
-            if state != first_state:
-                return False
-        return True
-
-    def reset(self):
-        self.states = [False]*self._full_state
-
-class _Data:
-    __slots__ = ['cflag', 'data', 'index']
-    def __init__(self, cflag, data, index) -> None:
-        self.cflag = cflag
-        self.data = data
-        self.index = index
-
 class _CalculateUnit:
     def __init__(self, strategy, symbol_infos, _hash) -> None:
-        self.fut = futures.Future()
         self.strategy = strategy
         self.symbol_infos = symbol_infos
         self._hash = _hash
@@ -78,6 +56,7 @@ class _CalculateUnit:
         self.datas_map = {}
         self._symbol_names = []
         self._cflags = []
+        self._waiters = []
         datas = []
         # 可能不同交易所有相同的symbol
         for db, symbol, intervals in symbol_infos:
@@ -99,6 +78,7 @@ class _CalculateUnit:
                 pass
 
     def on_update(self, backend_id, symbol, interval):
+        # TODO: 如果有多个数据后台多线程运行，这个函数需要考虑线程安全
         try:
             _data = self.datas_map[backend_id][symbol][interval]
         except KeyError:
@@ -124,17 +104,14 @@ class _CalculateUnit:
         signal['last_data_time'] = last_data_time
         signal['data_rec_time'] = data_rec_time
         signal['calc_time'] = start_counter
-        self.fut.set_result(signal)
-        new_fut = futures.Future()
-        new_fut._waiters = self.fut._waiters
-        self.fut = new_fut
+        for waiter in self._waiters:
+            waiter.add_result(signal)
 
     def _add_waiter(self, waiter):
-        self.fut._waiters.append(waiter)
+        self._waiters.append(waiter)
 
     def _remove_waiter(self, waiter):
-        with self.fut._condition:
-            self.fut._waiters.remove(waiter)
+        self._waiters.remove(waiter)
 
     def __hash__(self) -> int:
         return self._hash

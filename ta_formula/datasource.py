@@ -6,6 +6,7 @@ from functools import singledispatch
 from inspect import iscoroutinefunction
 
 __all__ = [
+    'DataBackendNotFound',
     'DataBackend',
     'AioDataBackend',
     'add_backend',
@@ -17,6 +18,9 @@ __all__ = [
 
 _registered_backends = {}
 data_backends = {}
+
+class DataBackendNotFound(Exception):
+    pass
 
 class _BaseDataBackend:
     def __init_subclass__(cls) -> None:
@@ -128,7 +132,7 @@ def get_backend(bid: str):
     try:
         return data_backends[bid]
     except KeyError as e:
-        raise RuntimeError(f'{bid} data backend is not registered') from e
+        raise DataBackendNotFound(f'{bid} data backend is not registered') from e
 
 
 def get_backends(bids):
