@@ -14,9 +14,9 @@ HIGH = datas[0][0]['high']
 LOW = datas[0][0]['low']
 
 # define indicators
-ma5: np.ndarray = ta.SMA(CLOSE, 5) # 这里只是测试，实际应该考虑用stream_SMA
-ma250: np.ndarray = ta.SMA(CLOSE, 250)
-skd: ta.tuple_double2 = ta.stream_SLOW_KD(HIGH, LOW, CLOSE, 69, 3)
+ma5 = ta.SMA(CLOSE, 5) # 这里只是测试，实际应该考虑用stream_SMA
+ma250 = ta.SMA(CLOSE, 250)
+skd = ta.stream_SLOW_KD(HIGH, LOW, CLOSE, 69, 3)
 
 # define signals
 ret = {

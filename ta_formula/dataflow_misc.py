@@ -10,7 +10,7 @@ def _prepare_arguments(datasources, datas_struct):
         for db, _symbol in symbols:
             symbols_by_db[db].add(_symbol)
         for db, _symbols_by_db in symbols_by_db.items():
-            ret.append((db, '_prepare', list(_symbols_by_db), intervals))
+            ret.append((db, 'prepare', list(_symbols_by_db), intervals))
     return ret
 
 

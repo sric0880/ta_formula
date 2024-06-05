@@ -17,12 +17,12 @@
 - 自定义指标，在TA-Lib库的基础上扩展自己的指标，完全在Cython中实现。
 - 自定义区间指标。
 - 自定义策略（同样纯Cython实现），根据参数和输入数据即时编译成动态链接库，实现微秒级信号发现
-  - 普通台式机CPU i5-10400 @2.9GHz 大概一个指标计算在0.5~5微秒
+  - 普通台式机CPU i5-10400 @2.9GHz 大概一个指标计算在0.5~5微秒（timeit结果，实际运行考虑到缓存缺失，会慢很多，可以尝试多进程方案）
   - 支持传入不同市场多个标的物
   - 支持传参
   - 支持自定义返回字段
   - 一次计算中，相同指标计算结果缓存，不重复计算
-- 数据流入、信号流出框架，自定义自己的数据源，支持asyncio，支持多线程，相同策略相同数据去重，避免重复计算。
+- 数据流入、信号流出框架，自定义数据流，数据流支持asyncio，多线程，相同策略相同数据去重，避免重复计算。
 
 ## 策略文件示例
 
@@ -43,9 +43,9 @@ HIGH = datas[0][0]['high']
 LOW = datas[0][0]['low']
 
 # define indicators
-ma5: np.ndarray = ta.SMA(CLOSE, 5)
-ma250: np.ndarray = ta.SMA(CLOSE, 250)
-skd: ta.tuple_double2 = ta.stream_SLOW_KD(HIGH, LOW, CLOSE, 69, 3)
+ma5 = ta.SMA(CLOSE, 5)
+ma250 = ta.SMA(CLOSE, 250)
+skd = ta.stream_SLOW_KD(HIGH, LOW, CLOSE, 69, 3)
 
 # define signals
 ret = {
@@ -96,10 +96,9 @@ ret = {
 
 1. 所有`stream_XXX`指标函数，需要显式注明返回类型，比如int, double，或者tuple类型，比如(double, double)。如果不标明，返回的不是c类型，而是python类型，比如int返回的是PyInt。目前只有部分函数修改了。Cython不支持python对象的tuple，比如(np.ndarray, np.ndarray)。
 2. ZIG、PERIOD_MAX_BIAS 没有stream和recent函数
-3. interval 大小写
-4. asyncio测试
+3. 多进程数据后台支持
+4. interval 大小写
 5. 替换intervals
-6. 支持输出debug信息
 
 ## 指标
 

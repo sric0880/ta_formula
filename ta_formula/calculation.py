@@ -1,50 +1,80 @@
 
 import logging
-import threading
 import time
 from collections import defaultdict
 
-from .calculation_misc import _ConsistentFlag, _Data
+# from line_profiler import LineProfiler
+
+# profile = LineProfiler()
 
 __all__ = ['calculation_center']
+# __all__ = ['calculation_center', 'profile']
+
 
 class _CalculationCenter:
-    def __init__(self) -> None:
+    def __init__(self, lock=None) -> None:
         self.calc_units = {}
         # 引用计数需要原子操作
-        self._lock = threading.Lock()
+        self._lock = lock
         self.ref_counts = defaultdict(int)
 
     def push(self, strategy, symbol_infos):
         _hash = hash((strategy._hash, tuple((db.bid, symbol, *intervals) for db, symbol, intervals in symbol_infos)))
-        with self._lock:
-            self.ref_counts[_hash] += 1
-            unit = self.calc_units.get(_hash, None)
-            if unit is None:
-                self.calc_units[_hash] = unit = _CalculateUnit(strategy, symbol_infos, _hash)
-                logging.debug(f'{unit}: New. Ref count {self.ref_counts[_hash]}')
-            else:
-                logging.debug(f'{unit}: Ref plus. Count {self.ref_counts[_hash]}')
+        if self._lock is not None:
+            self._lock.acquire()
+        self.ref_counts[_hash] += 1
+        unit = self.calc_units.get(_hash, None)
+        if unit is None:
+            self.calc_units[_hash] = unit = _CalculateUnit(strategy, symbol_infos, _hash)
+            logging.debug(f'{unit}: New. Ref count {self.ref_counts[_hash]}')
+        else:
+            logging.debug(f'{unit}: Ref plus. Count {self.ref_counts[_hash]}')
+        if self._lock is not None:
+            self._lock.release()
         return unit
 
     def pop(self, unit):
         _hash = unit._hash
-        with self._lock:
-            ref = self.ref_counts[_hash]
-            if ref == 0:
-                logging.error(f'{unit}: Ref is zero, cannot pop.')
-                return
-            ref -= 1
-            self.ref_counts[_hash] = ref
-            if ref == 0:
-                logging.debug(f'{unit}: Delete. Ref count {ref}')
-                unit = self.calc_units.pop(_hash)
-                unit.release()
-            else:
-                logging.debug(f'{unit}: Ref minus. Count {ref}')
+        if self._lock is not None:
+            self._lock.acquire()
+        ref = self.ref_counts[_hash]
+        if ref == 0:
+            logging.error(f'{unit}: Ref is zero, cannot pop.')
+            return
+        ref -= 1
+        self.ref_counts[_hash] = ref
+        if ref == 0:
+            logging.debug(f'{unit}: Delete. Ref count {ref}')
+            unit = self.calc_units.pop(_hash)
+            unit.release()
+        else:
+            logging.debug(f'{unit}: Ref minus. Count {ref}')
+        if self._lock is not None:
+            self._lock.release()
 
 
-calculation_center = _CalculationCenter()
+class _ConsistentFlag:
+    __slots__ = ['states', '_full_state']
+    def __init__(self, full_state) -> None:
+        self._full_state = full_state
+        self.states = [False]*full_state
+
+    def consistent(self):
+        first_state = self.states[0]
+        for state in self.states:
+            if state != first_state:
+                return False
+        return True
+
+    def reset(self):
+        self.states = [False]*self._full_state
+
+class _Data:
+    __slots__ = ['cflag', 'data', 'index']
+    def __init__(self, cflag, data, index) -> None:
+        self.cflag = cflag
+        self.data = data
+        self.index = index
 
 
 class _CalculateUnit:
@@ -77,6 +107,7 @@ class _CalculateUnit:
             except KeyError:
                 pass
 
+    # @profile
     def on_update(self, backend_id, symbol, interval):
         # TODO: 如果有多个数据后台多线程运行，这个函数需要考虑线程安全
         try:

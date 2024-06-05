@@ -1,17 +1,6 @@
 import ast
 import re
 
-cache_func_with_return_type_temp = '''
-    cdef int _{id}_defined = 0
-    cdef {return_type} _{id}
-    def {id}() -> {return_type}:
-        nonlocal _{id}_defined, _{id}
-        if _{id}_defined == 0:
-            _{id} = {func}
-            _{id}_defined = 1
-        return _{id}
-'''
-
 cache_func_no_return_type_temp = '''
     cdef int _{id}_defined = 0
     _{id} = None
@@ -46,14 +35,15 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool
         if not isinstance(node, (ast.Assign, ast.AnnAssign)):
             raise SyntaxError(f'line {node.lineno}, col_offset {node.col_offset} is not assignment.')
         if 'targets' in node._fields:
-            ann = None
+            # ann = None
             target = node.targets[0]
         elif 'target' in node._fields:
-            ann = ast.unparse(node.annotation)
+            # ann = ast.unparse(node.annotation)
             target = node.target
         if 'id' not in target._fields:
             raise SyntaxError(f'line {node.lineno}, col_offset {node.col_offset} tuple unpacking not supported.')
-        temp_pyx_struct[target.id] = (ann, node.value)
+        temp_pyx_struct[target.id] = node.value
+        # temp_pyx_struct[target.id] = (ann, node.value)
 
     _, datas_struct = temp_pyx_struct.pop('datas', None)
     if not datas_struct:
@@ -78,7 +68,7 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool
     pyx_struct['constant_params'] = {}
     pyx_struct['datas_interface'] = []
     pyx_struct['indicators'] = {}
-    for var_id, (ann, value) in temp_pyx_struct.items():
+    for var_id, value in temp_pyx_struct.items():
         if isinstance(value, ast.Constant):
             pyx_struct['constant_params'][var_id] = value.value
         elif isinstance(value, ast.Subscript):
@@ -88,7 +78,7 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool
                 raise SyntaxError(f'line {value.lineno}, col_offset {value.col_offset} must be "datas" subscription')
             pyx_struct['datas_interface'].append(interface)
         elif isinstance(value, ast.Call):
-            pyx_struct['indicators'][var_id] = (ann, ast.unparse(value))
+            pyx_struct['indicators'][var_id] = ast.unparse(value)
         else:
             raise SyntaxError(f'line {value.lineno}, col_offset {value.col_offset} not support this defines')
 
@@ -113,11 +103,8 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool
         debug_str = str.join(', ', [f"'debug_{field}': {field}" for field in data_params])
         ret_key_strs += [f'debug_{field}' for field in data_params]
     cache_funcs = []
-    for _id, (ann, func) in pyx_struct['indicators'].items():
-        if ann is None:
-            cf = cache_func_no_return_type_temp.format(id=_id, func=func)
-        else:
-            cf = cache_func_with_return_type_temp.format(id=_id, func=func, return_type=ann)
+    for _id, func in pyx_struct['indicators'].items():
+        cf = cache_func_no_return_type_temp.format(id=_id, func=func)
         cache_funcs.append(cf)
         if debug:
             ret_key_strs.append(f'debug_{_id}')
@@ -134,7 +121,7 @@ cimport numpy as np
 cimport ta_formula._indicators as ta
 
 
-def calculate({str.join(', ', ['np.ndarray '+field for field in data_params])}):
+def calculate({str.join(', ', [field for field in data_params])}):
     {str.join('', cache_funcs)}
 
     return {ret_str}

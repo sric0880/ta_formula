@@ -38,9 +38,6 @@ class _BaseDataBackend:
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({self.bid})'
 
-    def _prepare(self, symbols: list, intervals: list):
-        self.prepare(symbols, intervals)
-
     def on_update(self, symbol, interval):
         for unit in list(self._calc_units):
             unit.on_update(self.bid, symbol, interval)
@@ -57,11 +54,6 @@ class _BaseDataBackend:
 class DataBackend(_BaseDataBackend):
     def __init__(self, bid, config) -> None:
         super().__init__(bid, config)
-        self._lock = threading.Lock()
-
-    def _prepare(self, symbols: list, intervals: list):
-        with self._lock:
-            self.prepare(symbols, intervals)
 
     def prepare(self, symbols: list, intervals: list):
         '''
@@ -150,12 +142,12 @@ async def close_all_backends_async():
     async_closes = []
     for bid, backend in data_backends.items():
         if iscoroutinefunction(backend.close):
-            async_closes.append(asyncio.create_task(backend.close(), bid=bid))
+            async_closes.append(asyncio.create_task(backend.close()))
         else:
             async_closes.append(
                 asyncio.get_event_loop().run_in_executor(None, backend.close)
             )
         logging.debug(f"{backend!r} Shutdown")
     if async_closes:
-        await asyncio.gather(async_closes)
+        await asyncio.gather(*async_closes)
     data_backends.clear()
