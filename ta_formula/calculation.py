@@ -105,7 +105,7 @@ class _CalculateUnit:
         signal['data_rec_time'] = data_rec_time
         signal['calc_time'] = start_counter
         for waiter in self._waiters:
-            waiter.add_result(signal)
+            waiter.add_result(self._hash, signal)
 
     def _add_waiter(self, waiter):
         self._waiters.append(waiter)

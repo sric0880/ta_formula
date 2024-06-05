@@ -42,7 +42,7 @@ class _BaseDataBackend:
         self.prepare(symbols, intervals)
 
     def on_update(self, symbol, interval):
-        for unit in self._calc_units:
+        for unit in list(self._calc_units):
             unit.on_update(self.bid, symbol, interval)
 
     def add_data(self, symbol, interval, data):

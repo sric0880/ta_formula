@@ -23,13 +23,13 @@ def open_signal_stream(request):
             symbol_infos.append((db, symbol, intervals))
         units.append(calculation_center.push(strategy, symbol_infos))
 
-    _waiter = ListEvent()
+    _waiter = DictEvent()
     for unit in units:
         unit._add_waiter(_waiter)
     try:
         while True:
             if signals :=_waiter.wait(timeout=0.1):
-                for signal in signals:
+                for signal in signals.values():
                     # 附加 发送时间
                     signal['calc_time'] = time.perf_counter_ns() - signal['calc_time']
                     yield signal
@@ -46,11 +46,11 @@ def _batch_call_backend_method(arguments):
         func(*args) # 准备好这些数据字段，一直等待准备好为止
 
 
-class ListEvent(threading.Event):
+class DictEvent(threading.Event):
 
     def __init__(self):
         super().__init__()
-        self._flag = []
+        self._flag = {}
 
     def is_set(self):
         return bool(self._flag)
@@ -58,14 +58,14 @@ class ListEvent(threading.Event):
     def set(self):
         raise NotImplementedError('use add_result instead')
 
-    def add_result(self, result):
+    def add_result(self, unit_hash, result):
         with self._cond:
-            self._flag.append(result)
+            self._flag[unit_hash] = result
             self._cond.notify_all()
 
     def clear(self):
         with self._cond:
-            self._flag = []
+            self._flag = {}
 
     def wait(self, timeout=None):
         with self._cond:
