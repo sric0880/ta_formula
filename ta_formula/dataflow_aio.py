@@ -32,12 +32,12 @@ async def open_signal_stream(request):
         unit._add_waiter(_waiter)
     try:
         while True:
-            if signals := await _waiter.wait():
+            if await _waiter.wait():
+                signals = _waiter.clear()
                 for signal in signals.values():
                     # 附加 发送时间
                     signal['calc_time'] = time.perf_counter_ns() - signal['calc_time']
                     yield signal
-                _waiter.clear()
     finally:
         for unit in units:
             unit._remove_waiter(_waiter)
@@ -76,15 +76,17 @@ class DictEvent:
                 fut.set_result(True)
 
     def clear(self):
+        old_value = self._value
         self._value = {}
+        return old_value
 
     async def wait(self):
         if self._value:
-            return self._value
+            return True
 
         self.fut = fut = self._loop.create_future()
         try:
             await fut
-            return self._value
+            return True
         finally:
             self.fut = None

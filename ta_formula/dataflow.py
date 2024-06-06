@@ -29,12 +29,12 @@ def open_signal_stream(request):
         unit._add_waiter(_waiter)
     try:
         while True:
-            if signals :=_waiter.wait(timeout=0.1):
+            if _waiter.wait(timeout=0.1):
+                signals = _waiter.clear()
                 for signal in signals.values():
                     # 附加 发送时间
                     signal['calc_time'] = time.perf_counter_ns() - signal['calc_time']
                     yield signal
-                _waiter.clear()
     finally:
         for unit in units:
             unit._remove_waiter(_waiter)
@@ -47,31 +47,28 @@ def _batch_call_backend_method(arguments):
         func(*args) # 准备好这些数据字段，一直等待准备好为止
 
 
-class DictEvent(threading.Event):
+class DictEvent:
 
     def __init__(self):
-        super().__init__()
-        self._flag = {}
+        self._cond = threading.Condition(threading.Lock())
+        self._value = {}
 
     def is_set(self):
-        return bool(self._flag)
-
-    def set(self):
-        raise NotImplementedError('use add_result instead')
+        return bool(self._value)
 
     def add_result(self, unit_hash, result):
         with self._cond:
-            self._flag[unit_hash] = result
+            self._value[unit_hash] = result
             self._cond.notify_all()
 
     def clear(self):
+        old_value = self._value
         with self._cond:
-            self._flag = {}
+            self._value = {}
+        return old_value
 
     def wait(self, timeout=None):
         with self._cond:
-            signaled = self._flag
-            if not signaled:
-                if not self._cond.wait(timeout):
-                    return False
-            return signaled
+            if self._value:
+                return True
+            return self._cond.wait(timeout)
