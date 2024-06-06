@@ -97,8 +97,6 @@ ret = {
 1. 所有`stream_XXX`指标函数，需要显式注明返回类型，比如int, double，或者tuple类型，比如(double, double)。如果不标明，返回的不是c类型，而是python类型，比如int返回的是PyInt。目前只有部分函数修改了。Cython不支持python对象的tuple，比如(np.ndarray, np.ndarray)。
 2. ZIG、PERIOD_MAX_BIAS 没有stream和recent函数
 3. 多进程数据后台支持
-4. interval 大小写
-5. 替换intervals
 
 ## 指标
 

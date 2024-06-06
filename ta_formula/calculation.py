@@ -117,8 +117,6 @@ class _CalculateUnit:
         # 附加 数据接收时间戳
         start_counter = time.perf_counter_ns()
         data_rec_time = time.time()
-        # 附加 最新数据时间
-        last_data_time = _data.data['dt'][-1]
         _data.cflag.states[_data.index] = True
 
         # 同一标的的不同频率的数据，要么全部没更新，要么全部更新
@@ -131,10 +129,13 @@ class _CalculateUnit:
             cflag.reset()
         # 计算入口
         signal = self.strategy.calculate_x(self.datas_list)
-        signal['symbols'] = self._symbol_names
-        signal['last_data_time'] = last_data_time
+        # 附加 最新数据时间
+        signal['last_data_time'] = _data.data['dt'][-1]
+        # 附加 计算单元ID
+        signal['calc_unit_id'] = self._hash
         signal['data_rec_time'] = data_rec_time
         signal['calc_time'] = start_counter
+        signal['symbols'] = self._symbol_names
         for waiter in self._waiters:
             waiter.add_result(self._hash, signal)
 
