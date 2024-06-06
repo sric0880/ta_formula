@@ -13,8 +13,14 @@ cache_func_no_return_type_temp = '''
         return _{id}
 '''
 
+def _get_subscript_value(node):
+    if not isinstance(node, ast.Subscript):
+        return node
+    return _get_subscript_value(node.value)
+
 def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool):
     '''
+    第一行必须是cimport 开头
     必须有datas字段
     必须有ret字段
     只支持赋值语句和函数调用语句
@@ -76,16 +82,15 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool
     for var_id, value in temp_pyx_struct.items():
         if isinstance(value, ast.Constant):
             pyx_struct['constant_params'][var_id] = value.value
-        elif isinstance(value, ast.Subscript):
-            # datas subscript
-            interface = (var_id, ast.unparse(value))
-            if not interface[1].startswith('datas'):
-                raise SyntaxError(f'line {value.lineno}, col_offset {value.col_offset} must be "datas" subscription')
-            pyx_struct['datas_interface'].append(interface)
-        elif isinstance(value, ast.Call):
-            pyx_struct['indicators'][var_id] = ast.unparse(value)
         else:
-            raise SyntaxError(f'line {value.lineno}, col_offset {value.col_offset} not support this defines')
+            _value = _get_subscript_value(value)
+            if isinstance(_value, ast.Name) and _value.id == 'datas':
+                # datas subscript
+                pyx_struct['datas_interface'].append((var_id, ast.unparse(value)))
+            elif isinstance(_value, ast.Call):
+                pyx_struct['indicators'][var_id] = ast.unparse(value)
+            else:
+                raise SyntaxError(f'line {value.lineno}, col_offset {value.col_offset} not support this defines')
 
     # 更新params
     constant_params = pyx_struct["constant_params"]
@@ -95,7 +100,12 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool
     # 替换参数
     def replace1(match):
         return str(constant_params[match.group(0)])
-    pyx_struct["ret"] = re.sub('|'.join(r'\b{}\b'.format(k) for k in constant_params.keys()), replace1, pyx_struct["ret"])
+    constant_params_replace_regex = '|'.join(r'\b{}\b'.format(k) for k in constant_params.keys())
+    # 1. 返回中的参数需要替换
+    pyx_struct["ret"] = re.sub(constant_params_replace_regex, replace1, pyx_struct["ret"])
+    # 2. 函数中的参数需要替换
+    for _id, func in pyx_struct['indicators'].items():
+        pyx_struct['indicators'][_id] = re.sub(constant_params_replace_regex, replace1, func)
     # 替换函数
     indicator_ids = pyx_struct["indicators"].keys()
     def replace2(match):
