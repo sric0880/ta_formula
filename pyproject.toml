@@ -24,3 +24,6 @@ include-package-data = true
 
 [tool.setuptools.package-dir]
 ta_formula = "ta_formula"
+
+[project.scripts]
+tacompile = "ta_formula.strategy_ast:tacompile_entry"

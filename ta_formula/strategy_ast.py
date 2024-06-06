@@ -1,3 +1,4 @@
+import argparse
 import ast
 import re
 
@@ -54,15 +55,19 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool
     if not ret:
         raise SyntaxError(f'"ret" variable cannot be found.')
     # 选择性返回结果
-    ret_keys = []
-    ret_values = []
-    for ret_key, ret_value in zip(ret.keys, ret.values):
-        for field in return_fileds:
-            if field in ret_key.value:
-                ret_keys.append(ret_key)
-                ret_values.append(ret_value)
-                break
-    ret = ast.Dict(ret_keys, ret_values)
+    if return_fileds:
+        ret_keys = []
+        ret_values = []
+        for ret_key, ret_value in zip(ret.keys, ret.values):
+            for field in return_fileds:
+                if field in ret_key.value:
+                    ret_keys.append(ret_key)
+                    ret_values.append(ret_value)
+                    break
+        ret = ast.Dict(ret_keys, ret_values)
+    else:
+        ret_keys = ret.keys
+        ret_values = ret.values
     pyx_struct['ret'] = ast.unparse(ret)
 
     pyx_struct['constant_params'] = {}
@@ -117,7 +122,6 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool
 # THIS IS AUTO GENERATED FILE, DO NOT MODIFY THIS FILE
 
 #cython: language_level=3str
-cimport numpy as np
 cimport ta_formula._indicators as ta
 
 
@@ -139,6 +143,16 @@ def _dict_formatter(dict_str: str, keys):
         rebuild_dict += f"        '{k}':{v}\n"
     rebuild_dict += '    }\n'
     return rebuild_dict
+
+def tacompile_entry():
+    parser = argparse.ArgumentParser(description='将pyx策略模板文件编译成策略文件')
+    parser.add_argument('pyx_file', help='pyx策略模板')
+    parser.add_argument('-d', '--debug', action='store_true', help='是否输出debug数据')
+    args = parser.parse_args()
+    code, _ = parse_pyx_file(args.pyx_file, {}, [], args.debug)
+    output_file = args.pyx_file.replace('.pyx', '_out.pyx')
+    with open(output_file, 'w', encoding='utf8') as f:
+        f.write(code)
 
 if __name__ == '__main__':
     code, pyx_struct = parse_pyx_file('test_strategy.pyx', {}, ['open', 'close'], False)
