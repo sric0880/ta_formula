@@ -22,7 +22,7 @@ def _parse_datasources(datasources: list):
     for dss in datasources:
         _dss = []
         for ds in dss:
-            _, bid, symbol = ds.split('.')
+            bid, symbol = ds.split('.')
             _dss.append((get_backend(bid), symbol))
         ret.append(_dss)
     return ret

@@ -51,8 +51,8 @@ skd = ta.stream_SLOW_KD(HIGH, LOW, CLOSE, 69, 3)
 ret = {
     'open_long_condition1': ta.kup(ma250,-1) and ta.crossdown(ma5, ma250, -1),
     'open_short_condition1': ta.kdown(ma250,-1) and ta.crossup(ma5, ma250, -1),
-    'open_long_condition2': skd[0] <= kdj_minvalue and CLOSE[-1] > ma250,
-    'open_short_condition2': skd[0] >= kdj_maxvalue and CLOSE[-1] < ma250,
+    'open_long_condition2': skd[0] <= kdj_minvalue and CLOSE[-1] > ma250[-1],
+    'open_short_condition2': skd[0] >= kdj_maxvalue and CLOSE[-1] < ma250[-1],
     'close_long': skd[0] >= kdj_maxvalue,
     'close_short': skd[0] <= kdj_minvalue,
     'last_close_price': CLOSE[-1],
