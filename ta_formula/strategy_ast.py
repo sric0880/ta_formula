@@ -45,12 +45,12 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool
         temp_pyx_struct[target.id] = node.value
         # temp_pyx_struct[target.id] = (ann, node.value)
 
-    _, datas_struct = temp_pyx_struct.pop('datas', None)
+    datas_struct = temp_pyx_struct.pop('datas', None)
     if not datas_struct:
         raise SyntaxError(f'"datas" variable cannot be found.')
     pyx_struct['datas'] = ast.literal_eval(datas_struct)
 
-    _, ret = temp_pyx_struct.pop('ret', None)
+    ret = temp_pyx_struct.pop('ret', None)
     if not ret:
         raise SyntaxError(f'"ret" variable cannot be found.')
     # 选择性返回结果
