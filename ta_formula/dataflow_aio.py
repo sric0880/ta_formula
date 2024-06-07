@@ -13,8 +13,9 @@ calculation_center = _CalculationCenter()
 async def open_signal_stream(request):
     datasources = request['datasources']
     datasources = _parse_datasources(datasources)
-    # TODO: 这里编译pyx文件会阻塞线程，应该放到新开线程中去
-    strategy = get_strategy(request['pyx_file'], request['params'], request['return_fields'])
+    # 这里编译pyx文件会阻塞线程，应该放到新开线程中去
+    loop = asyncio.get_event_loop()
+    strategy = await loop.run_in_executor(None, get_strategy, request['pyx_file'], request['params'], request['return_fields'])
     datas_struct = request['datas'] if 'datas' in request else strategy.datas_struct
     # 准备所有需要的数据
     call_prepare_args = _prepare_arguments(datasources, datas_struct)
