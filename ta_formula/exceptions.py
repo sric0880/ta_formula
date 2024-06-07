@@ -9,3 +9,6 @@ class PyxSyntaxError(TaFormulaError):
 
 class DatasListNotMatch(TaFormulaError):
     pass
+
+class TaTimeoutError(TaFormulaError):
+    pass

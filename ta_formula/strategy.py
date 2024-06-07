@@ -38,7 +38,8 @@ class Strategy:
 
         self.pyx_code, pyx_struct = parse_pyx_file(pyx_file, params, return_fileds, debug)
         self.datas_interface = pyx_struct['datas_interface']
-        self.datas_list = [None]*len(self.datas_interface)
+        self.datas_struct = pyx_struct['datas']
+        self._datas_list = [None]*len(self.datas_interface)
 
         # compile
         with tempfile.NamedTemporaryFile('w', suffix=self.pyx_filename, encoding='utf8', dir=_temp_pyx_folder, delete=False) as temp_pyx:
@@ -56,7 +57,7 @@ def make_ext(name, filename):
             # BUG: pyximport will change the level of root logger
             calculator = importlib.import_module('ta_formula_strategies.'+modulename.replace('.pyx', ''))
             logging.getLogger().setLevel(old_level)
-            self.calculate = lambda: calculator.calculate(*self.datas_list)
+            self.calculate = lambda: calculator.calculate(*self._datas_list)
             self.calculate_x = lambda x: calculator.calculate(*x)
         finally:
             try:
@@ -76,7 +77,7 @@ def make_ext(name, filename):
         ''' 数据保存在strategy中，直接调用`calculate` '''
         try:
             for i, (k, v) in enumerate(self.datas_interface):
-                self.datas_list[i] = eval(v, {}, {"datas": datas})
+                self._datas_list[i] = eval(v, {}, {"datas": datas})
         except IndexError as e:
             raise DatasListNotMatch(f'{v} index out of range') from e
 

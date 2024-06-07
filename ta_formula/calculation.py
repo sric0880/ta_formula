@@ -82,7 +82,7 @@ class _CalculateUnit:
         self.strategy = strategy
         self.symbol_infos = symbol_infos
         self._hash = _hash
-        self.datas_list = [None]*len(strategy.datas_interface)
+        self._datas_list = [None]*len(strategy.datas_interface)
         self.datas_map = {}
         self._symbol_names = []
         self._cflags = []
@@ -91,14 +91,14 @@ class _CalculateUnit:
         # 可能不同交易所有相同的symbol
         for db, symbol, intervals in symbol_infos:
             self._symbol_names.append((db.bid, symbol))
-            _datas_list = [db._all_datas[symbol][interval] for interval in intervals]
-            datas.append(_datas_list)
+            _datas = [db._all_datas[symbol][interval] for interval in intervals]
+            datas.append(_datas)
             cflag = _ConsistentFlag(len(intervals))
             self._cflags.append(cflag)
             symbols = self.datas_map.setdefault(db.bid, {})
-            symbols[symbol] = dict(zip(intervals, [_Data(cflag, _data, i) for i,_data in enumerate(_datas_list)]))
+            symbols[symbol] = dict(zip(intervals, [_Data(cflag, _data, i) for i,_data in enumerate(_datas)]))
             db._calc_units.add(self)
-        strategy.feed_external_datas(datas, self.datas_list)
+        strategy.feed_external_datas(datas, self._datas_list)
 
     def release(self):
         for db, _, _ in self.symbol_infos:
@@ -128,7 +128,7 @@ class _CalculateUnit:
         for cflag in self._cflags:
             cflag.reset()
         # 计算入口
-        signal = self.strategy.calculate_x(self.datas_list)
+        signal = self.strategy.calculate_x(self._datas_list)
         # 附加 最新数据时间
         signal['last_data_time'] = _data.data['dt'][-1]
         # 附加 计算单元ID
