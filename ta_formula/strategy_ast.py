@@ -2,6 +2,8 @@ import argparse
 import ast
 import re
 
+from .exceptions import PyxSyntaxError
+
 cache_func_no_return_type_temp = '''
     cdef int _{id}_defined = 0
     _{id} = None
@@ -33,14 +35,17 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool
         code += line
         code += pyx.read()
 
-    st = ast.parse(code)
+    try:
+        st = ast.parse(code)
+    except SyntaxError as e:
+        raise PyxSyntaxError(f'{e.msg}, line {e.lineno}, {e.offset}') from e
 
     pyx_struct = {}
 
     temp_pyx_struct = {}
     for node in ast.iter_child_nodes(st):
         if not isinstance(node, (ast.Assign, ast.AnnAssign)):
-            raise SyntaxError(f'line {node.lineno}, col_offset {node.col_offset} is not assignment.')
+            raise PyxSyntaxError(f'is not assignment, line {value.lineno}, {value.col_offset}')
         if 'targets' in node._fields:
             # ann = None
             target = node.targets[0]
@@ -48,18 +53,18 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool
             # ann = ast.unparse(node.annotation)
             target = node.target
         if 'id' not in target._fields:
-            raise SyntaxError(f'line {node.lineno}, col_offset {node.col_offset} tuple unpacking not supported.')
+            raise PyxSyntaxError(f'tuple unpacking not supported, line {value.lineno}, {value.col_offset}')
         temp_pyx_struct[target.id] = node.value
         # temp_pyx_struct[target.id] = (ann, node.value)
 
     datas_struct = temp_pyx_struct.pop('datas', None)
     if not datas_struct:
-        raise SyntaxError(f'"datas" variable cannot be found.')
+        raise PyxSyntaxError(f'"datas" variable cannot be found.')
     pyx_struct['datas'] = ast.literal_eval(datas_struct)
 
     ret = temp_pyx_struct.pop('ret', None)
     if not ret:
-        raise SyntaxError(f'"ret" variable cannot be found.')
+        raise PyxSyntaxError(f'"ret" variable cannot be found.')
     # 选择性返回结果
     if return_fileds:
         ret_keys = []
@@ -90,7 +95,7 @@ def parse_pyx_file(pyx_file: str, params: dict, return_fileds: list, debug: bool
             elif isinstance(_value, ast.Call):
                 pyx_struct['indicators'][var_id] = ast.unparse(value)
             else:
-                raise SyntaxError(f'line {value.lineno}, col_offset {value.col_offset} not support this defines')
+                raise PyxSyntaxError(f'not support this defines, line {value.lineno}, {value.col_offset}')
 
     # 更新params
     constant_params = pyx_struct["constant_params"]

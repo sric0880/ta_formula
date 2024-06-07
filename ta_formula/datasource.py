@@ -1,12 +1,12 @@
 import asyncio
 import logging
-import threading
 from collections import defaultdict
 from functools import singledispatch
 from inspect import iscoroutinefunction
 
+from .exceptions import DataBackendNotFound
+
 __all__ = [
-    'DataBackendNotFound',
     'DataBackend',
     'AioDataBackend',
     'add_backend',
@@ -19,8 +19,6 @@ __all__ = [
 _registered_backends = {}
 data_backends = {}
 
-class DataBackendNotFound(Exception):
-    pass
 
 class _BaseDataBackend:
     def __init_subclass__(cls) -> None:

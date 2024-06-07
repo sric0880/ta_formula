@@ -8,6 +8,7 @@ from itertools import chain
 import numpy as np
 from pyximport import pyximport
 
+from .exceptions import DatasListNotMatch
 from .strategy_ast import parse_pyx_file
 
 pyximport.install(build_in_temp=False, setup_args={'include_dirs': np.get_include()})
@@ -42,6 +43,13 @@ class Strategy:
         # compile
         with tempfile.NamedTemporaryFile('w', suffix=self.pyx_filename, encoding='utf8', dir=_temp_pyx_folder, delete=False) as temp_pyx:
             temp_pyx.write(self.pyx_code)
+        temp_pyx_bld = temp_pyx.name+'bld'
+        with open(temp_pyx_bld, "w", encoding='utf8') as build_file:
+            build_file.write("""
+from distutils.extension import Extension
+def make_ext(name, filename):
+    return Extension(name=name, sources=[filename],define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")])
+""")
         try:
             modulename = os.path.basename(temp_pyx.name)
             old_level = logging.getLogger().level
@@ -54,6 +62,7 @@ class Strategy:
             try:
                 os.remove(temp_pyx.name)
                 os.remove(temp_pyx.name.replace('.pyx', '.c'))
+                os.remove(temp_pyx_bld)
             except:
                 pass
 
@@ -65,13 +74,19 @@ class Strategy:
     
     def feed_datas(self, datas):
         ''' 数据保存在strategy中，直接调用`calculate` '''
-        for i, (k, v) in enumerate(self.datas_interface):
-            self.datas_list[i] = eval(v, {}, {"datas": datas})
+        try:
+            for i, (k, v) in enumerate(self.datas_interface):
+                self.datas_list[i] = eval(v, {}, {"datas": datas})
+        except IndexError as e:
+            raise DatasListNotMatch(f'{v} index out of range') from e
 
     def feed_external_datas(self, datas, datas_list):
         ''' 数据保存在外部的`datas`中，调用`calculate_x`将`datas`传入，用于策略共享 '''
-        for i, (k, v) in enumerate(self.datas_interface):
-            datas_list[i] = eval(v, {}, {"datas": datas})
+        try:
+            for i, (k, v) in enumerate(self.datas_interface):
+                datas_list[i] = eval(v, {}, {"datas": datas})
+        except IndexError as e:
+            raise DatasListNotMatch(f'{v} index out of range') from e
 
 strategy_center = {}
 
