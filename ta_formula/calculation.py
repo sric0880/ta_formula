@@ -129,8 +129,6 @@ class _CalculateUnit:
             cflag.reset()
         # 计算入口
         signal = self.strategy.calculate_x(self._datas_list)
-        # 附加 最新数据时间
-        signal['last_data_time'] = _data.data['dt'][-1]
         # 附加 计算单元ID
         signal['calc_unit_id'] = self._hash
         signal['data_rec_time'] = data_rec_time
