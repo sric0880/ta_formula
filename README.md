@@ -2,19 +2,19 @@
 
 ## 使用
 
-参考 [examples.ipynb](https://github.com/sric0880/ta_formula/blob/main/examples.ipynb)
+参考案例 [examples.ipynb](https://github.com/sric0880/ta_formula/blob/main/examples.ipynb)
 
 所有移动平均算法参考 [matype.md](https://github.com/sric0880/ta_formula/blob/main/matype.md)
 
 ## 依赖库
 
-- [ta-lib底层c库](https://anaconda.org/conda-forge/libta-lib/files)
+- [ta-lib底层lib库](https://anaconda.org/conda-forge/libta-lib/files)==0.4.0
 - numpy>=1.26.4
 - Cython>=3.0.10
 
 ## 特性
 
-- 自定义指标，在TA-Lib库的基础上扩展自己的指标，完全在Cython中实现。
+- 自定义指标，在[TA-Lib(0.4.29)](https://pypi.org/project/TA-Lib/)库([Github](https://github.com/TA-Lib/ta-lib-python))的基础上扩展自己的指标，完全在Cython中实现。
 - 自定义区间指标。
 - 自定义策略（同样纯Cython实现），根据参数和输入数据即时编译成动态链接库，实现微秒级信号发现
   - 普通台式机CPU i5-10400 @2.9GHz 大概一个指标计算在0.5~5微秒（timeit结果，实际运行考虑到缓存缺失，会慢很多，可以尝试多进程方案）
