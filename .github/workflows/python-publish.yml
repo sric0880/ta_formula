@@ -16,11 +16,11 @@ permissions:
   contents: read
 
 jobs:
-  strategy:
-    matrix:
-      version: [3.9]
-      os: [windows-latest,ubuntu-latest]
   deploy:
+    strategy:
+      matrix:
+        version: [3.9]
+        os: [windows-latest,ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
     environment:
