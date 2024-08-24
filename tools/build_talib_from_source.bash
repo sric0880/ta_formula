@@ -14,5 +14,5 @@ tar -zxvf $TA_LIB_TGZ
 popd
 pushd $DEPS_DIR/tmp/ta-lib
 sudo ./configure
-make install
+sudo make install
 popd
