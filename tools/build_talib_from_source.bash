@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-if [[ -z $1 ]]; then
-  echo "Usage: $0 deps_dir"
-  exit 1
-fi
+cd "${GITHUB_WORKSPACE}"/"${PACKAGE_PATH}"
+export DEPS_PATH=${GITHUB_WORKSPACE}/dependencies
+export TA_INCLUDE_PATH=${GITHUB_WORKSPACE}/dependencies/include
+export TA_LIBRARY_PATH=${GITHUB_WORKSPACE}/dependencies/lib
 
 DEPS_DIR=$1
 
