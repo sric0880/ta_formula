@@ -69,9 +69,13 @@ jobs:
     - name: Setup macOS
       if: matrix.buildplat[0] == 'macos-13' || matrix.buildplat[0] == 'macos-14'
       run: |
+        # depending on libta_lib.0.0.0.dylib which is made on target os, so 
+        # the build wheel must be target to the same os.
         if [[ ${{ matrix.buildplat[0] }} == 'macos-14' ]]; then
-            # only target Sonoma onwards
             CIBW="MACOSX_DEPLOYMENT_TARGET=14.0"
+            echo "CIBW_ENVIRONMENT_MACOS=$CIBW" >> "$GITHUB_ENV"
+        else
+            CIBW="MACOSX_DEPLOYMENT_TARGET=13.0"
             echo "CIBW_ENVIRONMENT_MACOS=$CIBW" >> "$GITHUB_ENV"
         fi
 
@@ -80,11 +84,10 @@ jobs:
       run: |
         # others may not support yum install, eg. i686/musllinux
         if [[ ${{ matrix.buildplat[1] }} == 'manylinux_x86_64' ]]; then
-            CIBW="CIBW_BEFORE_ALL_LINUX='yum install -y wget && yum install -y sudo'"
+            "CIBW_BEFORE_ALL_LINUX='yum install -y wget && yum install -y sudo'" >> "$GITHUB_ENV"
         else
-            CIBW="CIBW_BEFORE_ALL_LINUX='apt-get install -y wget && apt-get install -y sudo'"
+            "CIBW_BEFORE_ALL_LINUX='apt-get install -y wget && apt-get install -y sudo'" >> "$GITHUB_ENV"
         fi
-        echo "CIBW_ENVIRONMENT_LINUX=$CIBW" >> "$GITHUB_ENV"
 
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.20.0
