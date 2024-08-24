@@ -14,7 +14,34 @@ authors = [
     {name = "sric0880", email = 'justgotpaid88@qq.com'}
 ]
 requires-python = ">=3.9"
-dependencies = [ ]
+dependencies = [
+    "Cython>=3.0.10"
+]
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["formula", "quant", "ta", "TA-Lib", "talib", "ta-lib", "technical-analysis", "indicators", "technical-indicators", "quantum-computing"]
+classifiers = [
+    "Development Status :: 1 - Alpha",
+    "Operating System :: Unix",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Cython",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Financial and Insurance Industry",
+]
+
+[project.urls]
+# Homepage = "https://example.com"
+# Documentation = "https://readthedocs.org"
+Repository = "https://github.com/sric0880/ta_formula"
+Issues = "https://github.com/sric0880/ta_formula/issues"
+# Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
 
 [tool.setuptools]
 include-package-data = true
