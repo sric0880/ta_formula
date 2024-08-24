@@ -9,8 +9,6 @@
 ## 依赖库
 
 - [ta-lib底层lib库](https://anaconda.org/conda-forge/libta-lib/files)==0.4.0
-- numpy>=1.26.4
-- Cython>=3.0.10
 
 ## 特性
 
