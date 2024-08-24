@@ -84,9 +84,9 @@ jobs:
       run: |
         # others may not support yum install, eg. i686/musllinux
         if [[ ${{ matrix.buildplat[1] }} == 'manylinux_x86_64' ]]; then
-            echo "CIBW_BEFORE_ALL_LINUX='yum install -y wget && yum install -y sudo'" >> "$GITHUB_ENV"
+            echo "CIBW_BEFORE_ALL_LINUX=yum install -y wget && yum install -y sudo" >> "$GITHUB_ENV"
         else
-            echo "CIBW_BEFORE_ALL_LINUX='apt-get install -y wget && apt-get install -y sudo'" >> "$GITHUB_ENV"
+            echo "CIBW_BEFORE_ALL_LINUX=apt-get install -y wget && apt-get install -y sudo" >> "$GITHUB_ENV"
         fi
 
     - name: Build wheels
