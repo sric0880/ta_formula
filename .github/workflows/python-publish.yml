@@ -64,13 +64,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Build wheel on Linux
+    - name: Build wheel on manylinux
       # see https://github.com/RalfG/python-wheels-manylinux-build
       uses: RalfG/python-wheels-manylinux-build@v0.7.1
       with:
         python-versions: 'cp39-cp39'
         build-requirements: 'numpy>=1.26.4 Cython>=3.0.10'
-        pre-build-command: './tools/build_talib_from_source.bash'
+        pre-build-command: 'sh ./tools/build_talib_from_source.sh'
     - name: Store the distribution packages
       uses: actions/upload-artifact@v4
       with:

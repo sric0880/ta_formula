@@ -1,10 +1,10 @@
-#!/bin/bash
-set -e
-
-cd "${GITHUB_WORKSPACE}"/"${PACKAGE_PATH}"
+#!/bin/sh
 export DEPS_PATH=${GITHUB_WORKSPACE}/dependencies
 export TA_INCLUDE_PATH=${GITHUB_WORKSPACE}/dependencies/include
 export TA_LIBRARY_PATH=${GITHUB_WORKSPACE}/dependencies/lib
+set -e
+
+cd "${GITHUB_WORKSPACE}"/"${PACKAGE_PATH}"
 
 DEPS_DIR=$1
 
