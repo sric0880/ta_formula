@@ -1,12 +1,7 @@
-#!/bin/sh
-export DEPS_PATH=${GITHUB_WORKSPACE}/dependencies
-export TA_INCLUDE_PATH=${GITHUB_WORKSPACE}/dependencies/include
-export TA_LIBRARY_PATH=${GITHUB_WORKSPACE}/dependencies/lib
+#!/bin/bash
 set -e
 
 cd "${GITHUB_WORKSPACE}"/"${PACKAGE_PATH}"
-
-DEPS_DIR=$1
 
 TA_LIB_TGZ="ta-lib-0.4.0-src.tar.gz"
 TA_LIB_URL="http://prdownloads.sourceforge.net/ta-lib/$TA_LIB_TGZ"

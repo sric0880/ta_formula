@@ -65,12 +65,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build wheel on manylinux
-      # see https://github.com/RalfG/python-wheels-manylinux-build
-      uses: RalfG/python-wheels-manylinux-build@v0.7.1
-      with:
-        python-versions: 'cp39-cp39'
-        build-requirements: 'numpy>=1.26.4 Cython>=3.0.10'
-        pre-build-command: 'sh ./tools/build_talib_from_source.sh'
+      uses: pypa/cibuildwheel@v2.20.0 --output-dir dist
+      env:
+        CIBW_PLATFORM: linux
+        CIBW_BUILD: cp39-*
+        CIBW_PROJECT_REQUIRES_PYTHON: ">=3.9"
+        CIBW_BUILD_FRONTEND: "pip"
+        CIBW_ENVIRONMENT: DEPS_PATH=${{ github.workspace }}/dependencies TA_INCLUDE_PATH=${{ github.workspace }}/dependencies/include TA_LIBRARY_PATH=${{ github.workspace }}/dependencies/lib
+        CIBW_ENVIRONMENT_PASS_LINUX: DEPS_PATH TA_INCLUDE_PATH TA_LIBRARY_PATH
+        CIBW_BEFORE_BUILD_LINUX: bash ./tools/build_talib_from_source.bash
     - name: Store the distribution packages
       uses: actions/upload-artifact@v4
       with:
