@@ -21,7 +21,7 @@ readme = "README.md"
 license = {file = "LICENSE"}
 keywords = ["formula", "quant", "ta", "TA-Lib", "talib", "ta-lib", "technical-analysis", "indicators", "technical-indicators", "quantum-computing"]
 classifiers = [
-    "Development Status :: 1 - Alpha",
+    "Development Status :: 2 - Pre-Alpha",
     "Operating System :: Unix",
     "Operating System :: POSIX",
     "Operating System :: MacOS :: MacOS X",
