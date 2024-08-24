@@ -1,3 +1,4 @@
+import os
 import sys
 
 import numpy
@@ -29,6 +30,12 @@ elif sys.platform == "win32":
     lib_talib_name = 'ta_libc_cdr'
     include_dirs = [r"c:\ta-lib\c\include"] # copy all .h files to c:\ta-lib\c\include\ta-lib\ directory
     library_dirs = [r"C:\ProgramData\Anaconda3\Library\lib"] # change to your lib path
+
+if 'TA_INCLUDE_PATH' in os.environ:
+    include_dirs = os.environ['TA_INCLUDE_PATH'].split(os.pathsep)
+
+if 'TA_LIBRARY_PATH' in os.environ:
+    library_dirs = os.environ['TA_LIBRARY_PATH'].split(os.pathsep)
 
 include_dirs.append(numpy.get_include())
 
