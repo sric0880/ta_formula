@@ -1,5 +1,9 @@
 TOOLS="wget sudo"
 echo AUDITWHEEL_POLICY=${AUDITWHEEL_POLICY}
+export BASE_POLICY=manylinux
+if [ "${AUDITWHEEL_POLICY:0:9}" == "musllinux" ]; then
+	export BASE_POLICY=musllinux
+fi
 echo BASE_POLICY=${BASE_POLICY}
 # others may not support yum install, eg. i686/musllinux
 if [ "${AUDITWHEEL_POLICY}" == "manylinux2014" ]; then
