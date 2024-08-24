@@ -6,7 +6,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Upload Python Package
+name: PyPI
 
 on:
   release:
@@ -31,36 +31,74 @@ jobs:
           name: cibw-sdist
           path: dist/*.tar.gz
 
+  # https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Build wheels ${{ matrix.python }}-${{ matrix.buildplat[1] }}-${{ matrix.buildplat[2] }}
+    runs-on: ${{ matrix.buildplat[0] }}
     strategy:
+      # Ensure that a wheel builder finishes even if another fails
+      fail-fast: false
       matrix:
         # macos-13 is an intel runner, macos-14 is apple silicon
         # https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#choosing-github-hosted-runners
-        os: [ubuntu-latest, macos-13, macos-14]
+        buildplat:
+          - [ubuntu-latest, manylinux_x86_64]
+          - [ubuntu-latest, musllinux_x86_64]
+          - [macos-13, macosx_x86_64]
+          - [macos-14, macosx_arm64]
+          # - [windows-2019, win_amd64]
+          # - [windows-2019, win32]
+        python: ["cp9"] # "cp10", "cp311", "cp312", "pp310", "cp313", "cp313t"
+        # exclude:
+        #   # Don't build PyPy 32-bit windows
+        #   - buildplat: [windows-2019, win32]
+        #     python: "pp310"
+        #   - buildplat: [ ubuntu-20.04, musllinux_x86_64]
+        #     python: "pp310"
+        #   - buildplat: [ macos-14, macosx_arm64]
+        #     python: "pp310"
+        #   - buildplat: [ windows-2019, win_amd64]
+        #     python: "cp313t"
+        #   - buildplat: [ windows-2019, win32]
+        #     python: "cp313t"
+        #   - buildplat: [ macos13, macosx_x86_64]
+        #     python: "cp313t"
     steps:
     - uses: actions/checkout@v4
+
+    - name: Setup macOS
+      if: matrix.buildplat[0] == 'macos-13' || matrix.buildplat[0] == 'macos-14'
+      run: |
+        if [[ ${{ matrix.buildplat[0] }} == 'macos-14' ]]; then
+            # only target Sonoma onwards
+            CIBW="MACOSX_DEPLOYMENT_TARGET=14.0"
+            echo "CIBW_ENVIRONMENT_MACOS=$CIBW" >> "$GITHUB_ENV"
+        endif
+
+    - name: Setup linux
+      if: matrix.buildplat[0] == 'ubuntu-latest'
+      run: |
+        # others may not support yum install, eg. i686/musllinux
+        if [[ ${{ matrix.buildplat[1] }} == 'manylinux_x86_64' ]]; then
+            CIBW="CIBW_BEFORE_ALL_LINUX='yum install -y wget && yum install -y sudo'"
+        else
+            CIBW="CIBW_BEFORE_ALL_LINUX='apt-get install -y wget && apt-get install -y sudo'"
+        endif
+        echo "CIBW_ENVIRONMENT_LINUX=$CIBW" >> "$GITHUB_ENV"
 
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.20.0
       env:
-        CIBW_BUILD: cp39-*
-        CIBW_SKIP: "*-musllinux_*"
-        CIBW_ARCHS_LINUX: "x86_64" # others may not support yum install, eg. i686/musllinux
+        CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
         CIBW_PROJECT_REQUIRES_PYTHON: ">=3.9"
         CIBW_BUILD_FRONTEND: "pip"
-        CIBW_BEFORE_ALL_LINUX: >
-         yum install -y wget &&
-         yum install -y sudo
-        CIBW_BEFORE_BUILD_LINUX: bash ./tools/build_talib_from_source.bash
         CIBW_BEFORE_BUILD_MACOS: bash ./tools/build_talib_from_source.bash
-        MACOSX_DEPLOYMENT_TARGET: 14.0
+        CIBW_BEFORE_BUILD_LINUX: bash ./tools/build_talib_from_source.bash
 
     - name: Store the distribution packages
       uses: actions/upload-artifact@v4
       with:
-        name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+        name: cibw-wheel-${{ matrix.python }}-${{ matrix.buildplat[1] }}-${{ matrix.buildplat[2] }}
         path: ./wheelhouse/*.whl
 
   publish-to-pypi:
