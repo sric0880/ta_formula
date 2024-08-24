@@ -31,11 +31,11 @@ jobs:
 
     - name: Install TA-Lib
       run: |
-        ./tools/build_talib_from_source.bash $DEPS_PATH
-      env:
-        DEPS_PATH: ${{ github.workspace }}/dependencies
-        TA_INCLUDE_PATH: ${{ github.workspace }}/dependencies/include
-        TA_LIBRARY_PATH: ${{ github.workspace }}/dependencies/lib
+        ./tools/build_talib_from_source.bash
+      # env:
+      #   DEPS_PATH: ${{ github.workspace }}/dependencies
+      #   TA_INCLUDE_PATH: ${{ github.workspace }}/dependencies/include
+      #   TA_LIBRARY_PATH: ${{ github.workspace }}/dependencies/lib
 
     - name: Install dependencies
       run: |
@@ -46,17 +46,17 @@ jobs:
 
     - name: Build cython modules in-place
       run: |
-        python setup.py build_ext --inplace --include-dirs=$TA_INCLUDE_PATH --library-dirs=$TA_LIBRARY_PATH
-      env:
-        TA_INCLUDE_PATH: ${{ github.workspace }}/dependencies/include
-        TA_LIBRARY_PATH: ${{ github.workspace }}/dependencies/lib
+        python setup.py build_ext --inplace
+      # env:
+      #   TA_INCLUDE_PATH: ${{ github.workspace }}/dependencies/include
+      #   TA_LIBRARY_PATH: ${{ github.workspace }}/dependencies/lib
 
     - name: Build package
       run: python setup.py sdist bdist_wheel
     - name: Store the distribution packages
       uses: actions/upload-artifact@v4
       with:
-        name: python-package-distributions
+        name: dist-sdist
         path: dist/
         overwrite: true
 
@@ -65,20 +65,20 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build wheel on manylinux
-      uses: pypa/cibuildwheel@v2.20.0 --output-dir dist
+      uses: pypa/cibuildwheel@v2.20.0
       env:
         CIBW_PLATFORM: linux
         CIBW_BUILD: cp39-*
         CIBW_PROJECT_REQUIRES_PYTHON: ">=3.9"
         CIBW_BUILD_FRONTEND: "pip"
-        CIBW_ENVIRONMENT: DEPS_PATH=${{ github.workspace }}/dependencies TA_INCLUDE_PATH=${{ github.workspace }}/dependencies/include TA_LIBRARY_PATH=${{ github.workspace }}/dependencies/lib
-        CIBW_ENVIRONMENT_PASS_LINUX: DEPS_PATH TA_INCLUDE_PATH TA_LIBRARY_PATH
+        # CIBW_ENVIRONMENT: DEPS_PATH=${{ github.workspace }}/dependencies TA_INCLUDE_PATH=${{ github.workspace }}/dependencies/include TA_LIBRARY_PATH=${{ github.workspace }}/dependencies/lib
+        # CIBW_ENVIRONMENT_PASS_LINUX: DEPS_PATH TA_INCLUDE_PATH TA_LIBRARY_PATH
         CIBW_BEFORE_BUILD_LINUX: bash ./tools/build_talib_from_source.bash
     - name: Store the distribution packages
       uses: actions/upload-artifact@v4
       with:
-        name: python-package-distributions
-        path: dist/
+        name: dist-wheels
+        path: ./wheelhouse/*.whl
 
   publish-to-pypi:
     needs:
@@ -95,7 +95,8 @@ jobs:
     - name: Download all the dists
       uses: actions/download-artifact@v4
       with:
-        name: python-package-distributions
-        path: dist/
+        pattern: dist-*
+        path: dist
+        merge-multiple: true
     - name: pypi-publish
       uses: pypa/gh-action-pypi-publish@v1.9.0
