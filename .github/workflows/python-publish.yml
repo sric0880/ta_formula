@@ -46,10 +46,9 @@ jobs:
       uses: pypa/cibuildwheel@v2.20.0
       env:
         CIBW_BUILD: cp39-*
+        CIBW_SKIP: *_aarch64 *_ppc64le *_s390x # has no yum installed
         CIBW_PROJECT_REQUIRES_PYTHON: ">=3.9"
         CIBW_BUILD_FRONTEND: "pip"
-        # CIBW_ENVIRONMENT: DEPS_PATH=${{ github.workspace }}/dependencies TA_INCLUDE_PATH=${{ github.workspace }}/dependencies/include TA_LIBRARY_PATH=${{ github.workspace }}/dependencies/lib
-        # CIBW_ENVIRONMENT_PASS_LINUX: DEPS_PATH TA_INCLUDE_PATH TA_LIBRARY_PATH
         CIBW_BEFORE_ALL_LINUX: >
          yum install -y wget &&
          yum install -y sudo
