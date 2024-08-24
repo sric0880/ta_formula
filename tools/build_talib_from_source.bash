@@ -13,6 +13,6 @@ pushd $DEPS_DIR/tmp
 tar -zxvf $TA_LIB_TGZ
 popd
 pushd $DEPS_DIR/tmp/ta-lib
-./configure --prefix=/opt/local
+sudo ./configure
 make install
 popd
