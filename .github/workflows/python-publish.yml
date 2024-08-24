@@ -73,7 +73,7 @@ jobs:
             # only target Sonoma onwards
             CIBW="MACOSX_DEPLOYMENT_TARGET=14.0"
             echo "CIBW_ENVIRONMENT_MACOS=$CIBW" >> "$GITHUB_ENV"
-        endif
+        fi
 
     - name: Setup linux
       if: matrix.buildplat[0] == 'ubuntu-latest'
@@ -83,7 +83,7 @@ jobs:
             CIBW="CIBW_BEFORE_ALL_LINUX='yum install -y wget && yum install -y sudo'"
         else
             CIBW="CIBW_BEFORE_ALL_LINUX='apt-get install -y wget && apt-get install -y sudo'"
-        endif
+        fi
         echo "CIBW_ENVIRONMENT_LINUX=$CIBW" >> "$GITHUB_ENV"
 
     - name: Build wheels
