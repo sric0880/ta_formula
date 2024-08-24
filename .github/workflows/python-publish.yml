@@ -38,8 +38,6 @@ jobs:
 
     - name: Install TA-Lib
       run: |
-        pip install -r requirements_test.txt
-        pip install flake8
         ./tools/build_talib_from_source.bash $DEPS_PATH
       env:
         DEPS_PATH: ${{ github.workspace }}/dependencies
