@@ -46,7 +46,8 @@ jobs:
       uses: pypa/cibuildwheel@v2.20.0
       env:
         CIBW_BUILD: cp39-*
-        CIBW_ARCHS_LINUX: "x86_64" # others may not support yum install, eg. i686
+        CIBW_SKIP: "*-musllinux_*"
+        CIBW_ARCHS_LINUX: "x86_64" # others may not support yum install, eg. i686/musllinux
         CIBW_PROJECT_REQUIRES_PYTHON: ">=3.9"
         CIBW_BUILD_FRONTEND: "pip"
         CIBW_BEFORE_ALL_LINUX: >
