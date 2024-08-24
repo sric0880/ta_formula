@@ -44,7 +44,6 @@ jobs:
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.20.0
       env:
-        CIBW_PLATFORM: linux
         CIBW_BUILD: cp39-*
         CIBW_PROJECT_REQUIRES_PYTHON: ">=3.9"
         CIBW_BUILD_FRONTEND: "pip"
@@ -52,6 +51,7 @@ jobs:
         # CIBW_ENVIRONMENT_PASS_LINUX: DEPS_PATH TA_INCLUDE_PATH TA_LIBRARY_PATH
         CIBW_BEFORE_ALL_LINUX: yum install -y wget
         CIBW_BEFORE_BUILD_LINUX: bash ./tools/build_talib_from_source.bash
+        CIBW_BEFORE_BUILD_MACOS: bash ./tools/build_talib_from_source.bash
 
     - name: Store the distribution packages
       uses: actions/upload-artifact@v4
