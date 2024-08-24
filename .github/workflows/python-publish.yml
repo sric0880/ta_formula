@@ -79,16 +79,6 @@ jobs:
             echo "CIBW_ENVIRONMENT_MACOS=$CIBW" >> "$GITHUB_ENV"
         fi
 
-    - name: Setup linux
-      if: matrix.buildplat[0] == 'ubuntu-latest'
-      run: |
-        # others may not support yum install, eg. i686/musllinux
-        if [[ ${{ matrix.buildplat[1] }} == 'manylinux_x86_64' ]]; then
-            echo "CIBW_BEFORE_ALL_LINUX=yum install -y wget && yum install -y sudo" >> "$GITHUB_ENV"
-        else
-            echo "CIBW_BEFORE_ALL_LINUX=apt-get install -y wget && apt-get install -y sudo" >> "$GITHUB_ENV"
-        fi
-
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.20.0
       env:
@@ -96,7 +86,7 @@ jobs:
         CIBW_PROJECT_REQUIRES_PYTHON: ">=3.9"
         CIBW_BUILD_FRONTEND: "pip"
         CIBW_BEFORE_BUILD_MACOS: bash ./tools/build_talib_from_source.bash
-        CIBW_BEFORE_BUILD_LINUX: bash ./tools/build_talib_from_source.bash
+        CIBW_BEFORE_BUILD_LINUX: bash ./tools/install_tools.bash && bash ./tools/build_talib_from_source.bash
 
     - name: Store the distribution packages
       uses: actions/upload-artifact@v4
