@@ -1,12 +1,12 @@
 # ta_formula
-[![PyPI](https://github.com/sric0880/ta_formula/actions/workflows/python-publish.yml/badge.svg)](https://github.com/sric0880/ta_formula/actions/workflows/python-publish.yml) [![PyPI](https://img.shields.io/pypi/v/ta_formula)](https://pypi.org/project/ta-formula/)
 
+[![PyPI](https://github.com/sric0880/ta_formula/actions/workflows/python-publish.yml/badge.svg)](https://github.com/sric0880/ta_formula/actions/workflows/python-publish.yml) [![PyPI](https://img.shields.io/pypi/v/ta_formula)](https://pypi.org/project/ta-formula/)
 
 ## 依赖库
 
 - [ta-lib底层lib库](https://anaconda.org/conda-forge/libta-lib/files)==0.4.0
 
-## 使用
+## 安装使用
 
 ```sh
 pip install ta_formula
@@ -14,7 +14,8 @@ pip install ta_formula
 
 参考案例 [examples.ipynb](https://github.com/sric0880/ta_formula/blob/main/examples.ipynb)
 
-所有移动平均算法参考 [matype.md](https://github.com/sric0880/ta_formula/blob/main/matype.md)
+- [matype.md](https://github.com/sric0880/ta_formula/blob/main/matype.md) 所有移动平均算法参考
+- [cdl_pattern_recognition.md](https://github.com/sric0880/ta_formula/blob/main/cdl_pattern_recognition.md) 所有TA-Lib中的K线形态识别算法参考
 
 ## 特性
 
