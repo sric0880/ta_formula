@@ -1,8 +1,10 @@
 #cython: language_level=3str
 
 # Usage:
-# 1. build: CPPFLAGS="-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION" C_INCLUDE_PATH=/Users/qiong/opt/miniconda3/lib/python3.9/site-packages/numpy/core/include cythonize -i --3str tests/indicators_cases.pyx
-# 2. run test: python -m pytest tests/test_indicators.py
+# 1. build: change numpy include path to your own path
+#   Linux/MacOS: CPPFLAGS="-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION" C_INCLUDE_PATH=/Users/qiong/opt/miniconda3/lib/python3.9/site-packages/numpy/core/include cythonize -i --3str tests/indicators_cases.pyx
+#   Windows: 在系统环境变量中添加INCLUDE，添加numpy的include和ta-lib的include，然后打开cmd执行cythonize -i --3str tests/indicators_cases.pyx
+# 2. run test: python -m pytest tests
 
 from ta_formula cimport indicators as ta
 import numpy as np
