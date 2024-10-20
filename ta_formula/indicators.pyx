@@ -7,9 +7,40 @@ include "_period_indicators.pxi"
 include "_numpy_funcs.pxi"
 
 
+cdef int check_length2_new(double[::1] a1, double[::1] a2) except -1:
+    cdef:
+        int length
+    length = a1.shape[0]
+    if length != a2.shape[0]:
+        raise Exception("input array lengths are different")
+    return length
+
+cdef int check_length3_new(double[::1] a1, double[::1] a2, double[::1] a3) except -1:
+    cdef:
+        int length
+    length = a1.shape[0]
+    if length != a2.shape[0]:
+        raise Exception("input array lengths are different")
+    if length != a3.shape[0]:
+        raise Exception("input array lengths are different")
+    return length
+
+cdef int check_length4_new(double[::1] a1, double[::1] a2, double[::1] a3, double[::1] a4) except -1:
+    cdef:
+        int length
+    length = a1.shape[0]
+    if length != a2.shape[0]:
+        raise Exception("input array lengths are different")
+    if length != a3.shape[0]:
+        raise Exception("input array lengths are different")
+    if length != a4.shape[0]:
+        raise Exception("input array lengths are different")
+    return length
+
+
 @wraparound(False)
 @boundscheck(False)
-cdef recent_SMA( np.ndarray real , int timeperiod, int calc_length):
+cdef recent_SMA(double[::1] real, int timeperiod, int calc_length):
     """ recent_SMA
 
     Simple Moving Average (Overlap Studies)
@@ -23,19 +54,18 @@ cdef recent_SMA( np.ndarray real , int timeperiod, int calc_length):
         real: (ndarray)
     """
     cdef:
-        np.npy_intp length
+        int length
         TA_RetCode retCode
         double* real_data
         int outbegidx
         int outnbelement
         np.ndarray outreal
-    real = check_array(real)
     if calc_length == 0:
         raise Exception(f'recent_SMA function failed with error: calc_length == 0')
-    real_data = <double*>real.data
+    real_data = &real[0]
     length = real.shape[0]
     outreal = make_double_array(calc_length, 0)
-    retCode = lib.TA_SMA( <int>(length) - calc_length , <int>(length) - 1 , real_data , timeperiod , &outbegidx , &outnbelement , <double *>(outreal.data) )
+    retCode = lib.TA_SMA( length - calc_length , length - 1 , real_data , timeperiod , &outbegidx , &outnbelement , <double *>(outreal.data) )
     _ta_check_success("TA_SMA", retCode)
     return outreal 
 
@@ -70,7 +100,7 @@ cdef double stream_BIAS(np.ndarray real, int timeperiod):
     return (real[-1] - ma) * 100 / ma
 
 
-cdef recent_BIAS(np.ndarray real, int timeperiod, int calc_length):
+cdef recent_BIAS(double[::1] real, int timeperiod, int calc_length):
     """ recent_BIAS
     乖离率
 
@@ -85,14 +115,14 @@ cdef recent_BIAS(np.ndarray real, int timeperiod, int calc_length):
     cdef:
         int length
         np.ndarray ma
-    length = <int>real.shape[0]
+    length = real.shape[0]
     ma = recent_SMA(real, timeperiod, calc_length)
     return (real[length - calc_length: length] - ma) * 100 / ma
 
 
 @wraparound(False)
 @boundscheck(False)
-cdef recent_MACD( np.ndarray real, int fastperiod, int slowperiod , int signalperiod, int calc_length ):
+cdef recent_MACD(double[::1] real, int fastperiod, int slowperiod , int signalperiod, int calc_length ):
     """ recent_MACD
 
     Moving Average Convergence/Divergence (Momentum Indicators)
@@ -110,7 +140,7 @@ cdef recent_MACD( np.ndarray real, int fastperiod, int slowperiod , int signalpe
         macdhist: (ndarray)
     """
     cdef:
-        np.npy_intp length
+        int length
         TA_RetCode retCode
         double* real_data
         int outbegidx
@@ -118,16 +148,15 @@ cdef recent_MACD( np.ndarray real, int fastperiod, int slowperiod , int signalpe
         np.ndarray dif
         np.ndarray dea
         np.ndarray outmacdhist
-    real = check_array(real)
     if calc_length == 0:
         raise Exception(f'recent_MACD function failed with error: calc_length == 0')
-    real_data = <double*>real.data
+    real_data = &real[0]
     length = real.shape[0]
     dif = make_double_array(calc_length, 0)
     dea = make_double_array(calc_length, 0)
     outmacdhist = make_double_array(calc_length, 0)
     _ta_set_unstable_period(FUNC_UNST_IDS.ID_EMA, calc_length+ema_unstable_periods[slowperiod])
-    retCode = lib.TA_MACD( <int>(length) - calc_length , <int>(length) - 1 , real_data , fastperiod , slowperiod , signalperiod , &outbegidx , &outnbelement , <double *>(dif.data) , <double *>(dea.data) , <double *>(outmacdhist.data) )
+    retCode = lib.TA_MACD(length - calc_length , length - 1 , real_data , fastperiod , slowperiod , signalperiod , &outbegidx , &outnbelement , <double *>(dif.data) , <double *>(dea.data) , <double *>(outmacdhist.data) )
     _ta_check_success("TA_MACD", retCode)
     outmacdhist *= 2  # MACD = (DIF-DEA) * 2
     return dif, dea, outmacdhist
@@ -135,7 +164,7 @@ cdef recent_MACD( np.ndarray real, int fastperiod, int slowperiod , int signalpe
 
 @wraparound(False)
 @boundscheck(False)
-cdef recent_STOCH( np.ndarray high , np.ndarray low , np.ndarray close, int fastk_period, int slowk_period, int slowk_matype, int slowd_period, int slowd_matype, int calc_length):
+cdef recent_STOCH(double[::1] high, double[::1] low, double[::1] close, int fastk_period, int slowk_period, int slowk_matype, int slowd_period, int slowd_matype, int calc_length):
     """ recent_STOCH(high, low, close[, fastk_period=?, slowk_period=?, slowk_matype=?, slowd_period=?, slowd_matype=?, calc_length=?])
 
     Stochastic (Momentum Indicators)
@@ -154,7 +183,7 @@ cdef recent_STOCH( np.ndarray high , np.ndarray low , np.ndarray close, int fast
         slowd: (ndarray)
     """
     cdef:
-        np.npy_intp length
+        int length
         TA_RetCode retCode
         double* high_data
         double* low_data
@@ -163,18 +192,15 @@ cdef recent_STOCH( np.ndarray high , np.ndarray low , np.ndarray close, int fast
         int outnbelement
         np.ndarray outslowk
         np.ndarray outslowd
-    high = check_array(high)
-    low = check_array(low)
-    close = check_array(close)
     if calc_length == 0:
         raise Exception(f'recent_STOCH function failed with error: calc_length == 0')
-    length = check_length3(high, low, close)
-    high_data = <double*>high.data
-    low_data = <double*>low.data
-    close_data = <double*>close.data
+    length = check_length3_new(high, low, close)
+    high_data = &high[0]
+    low_data = &low[0]
+    close_data = &close[0]
     outslowk = make_double_array(calc_length, 0)
     outslowd = make_double_array(calc_length, 0)
-    retCode = lib.TA_STOCH( <int>(length) - calc_length , <int>(length) - 1 , high_data , low_data , close_data , fastk_period , slowk_period , slowk_matype , slowd_period , slowd_matype , &outbegidx , &outnbelement , <double *>(outslowk.data), <double *>(outslowd.data))
+    retCode = lib.TA_STOCH(length - calc_length , length - 1 , high_data , low_data , close_data , fastk_period , slowk_period , slowk_matype , slowd_period , slowd_matype , &outbegidx , &outnbelement , <double *>(outslowk.data), <double *>(outslowd.data))
     _ta_check_success("TA_STOCH", retCode)
     return outslowk , outslowd 
 
@@ -214,9 +240,9 @@ cdef tuple_double2 stream_KD(np.ndarray high, np.ndarray low, np.ndarray close, 
     cdef int kp = slowk_period * 2 - 1
     cdef int dp = slowd_period * 2 - 1
     _ta_set_unstable_period(FUNC_UNST_IDS.ID_EMA, ema_unstable_periods[kp] + ema_unstable_periods[dp])
-    return stream_STOCH( high, low, close, fastk_period, kp, 1, dp, 1)
+    return stream_STOCH(high, low, close, fastk_period, kp, 1, dp, 1)
 
-cdef recent_KD( np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period, int calc_length):
+cdef recent_KD(double[::1] high, double[::1] low, double[::1] close, int fastk_period, int slowk_period, int slowd_period, int calc_length):
     """ recent_KD
 
     recent_KD (Momentum Indicators)
@@ -235,7 +261,7 @@ cdef recent_KD( np.ndarray high, np.ndarray low, np.ndarray close, int fastk_per
     cdef int kp = slowk_period * 2 - 1
     cdef int dp = slowd_period * 2 - 1
     _ta_set_unstable_period(FUNC_UNST_IDS.ID_EMA, ema_unstable_periods[kp] + ema_unstable_periods[dp])
-    return recent_STOCH( high, low, close, fastk_period, kp, 1, dp, 1, calc_length)
+    return recent_STOCH(high, low, close, fastk_period, kp, 1, dp, 1, calc_length)
 
 
 cdef KDJ(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period):
@@ -281,7 +307,7 @@ cdef tuple_double3 stream_KDJ(np.ndarray high, np.ndarray low, np.ndarray close,
     k, d = stream_STOCH(high, low, close, fastk_period, kp, 1, dp, 1)
     return (k, d, (3 * k) - (2 * d))
 
-cdef recent_KDJ(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_period, int slowk_period, int slowd_period, int calc_length):
+cdef recent_KDJ(double[::1] high, double[::1] low, double[::1] close, int fastk_period, int slowk_period, int slowd_period, int calc_length):
     """ recent_KDJ
 
     recent_KDJ (Momentum Indicators)
@@ -302,28 +328,31 @@ cdef recent_KDJ(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_per
     cdef int dp = slowd_period * 2 - 1
     _ta_set_unstable_period(FUNC_UNST_IDS.ID_EMA, ema_unstable_periods[kp] + ema_unstable_periods[dp])
     cdef np.ndarray k, d
-    k, d = recent_STOCH( high, low, close, fastk_period, kp, 1, dp, 1, calc_length)
+    k, d = recent_STOCH(high, low, close, fastk_period, kp, 1, dp, 1, calc_length)
     return k, d, (3 * k) - (2 * d)
 
 
 @wraparound(False)
 @boundscheck(False)
-cdef np.ndarray _stream_SLOW_K(np.ndarray high, np.ndarray low, np.ndarray close , int fastk_period, int slowkd_period, int calc_length):
+cdef np.ndarray _stream_SLOW_K(double[::1] high, double[::1] low, double[::1] close , int fastk_period, int slowkd_period, int calc_length):
     cdef:
-        np.npy_intp length
+        int length
         np.npy_int begidx, endidx, newbegidx, newlength, lookback
+        double* high_data
+        double* low_data
+        double* close_data
         TA_RetCode retCode 
         int outbegidx
         int outnbelement
         int unstable_period
         np.ndarray input1, input2
     unstable_period = ema_unstable_periods[slowkd_period]
-    high = check_array(high)
-    low = check_array(low)
-    close = check_array(close)
     lookback = fastk_period + 2 * unstable_period + slowkd_period + slowkd_period + calc_length
-    length = check_length3(high, low, close)
-    begidx = check_begidx3(length, <double*>(high.data), <double*>(low.data), <double*>(close.data))
+    length = check_length3_new(high, low, close)
+    high_data = &high[0]
+    low_data = &low[0]
+    close_data = &close[0]
+    begidx = check_begidx3(length, high_data, low_data, close_data)
     endidx = <np.npy_int>length - begidx - 1
     newbegidx = endidx - lookback
     if newbegidx < 0:
@@ -333,11 +362,11 @@ cdef np.ndarray _stream_SLOW_K(np.ndarray high, np.ndarray low, np.ndarray close
     # eup = ema_unstable_periods
     # fastk_period + eup[slowkd_period] + slowkd_period + eup[slowkd_period] + slowkd_period
     input1 = make_double_array(newlength, lib.TA_MIN_Lookback( fastk_period )) # input1 = lowv
-    retCode = lib.TA_MIN( newbegidx , endidx , <double *>(low.data)+begidx , fastk_period , &outbegidx , &outnbelement , <double *>(input1.data))
+    retCode = lib.TA_MIN( newbegidx , endidx , low_data+begidx , fastk_period , &outbegidx , &outnbelement , <double *>(input1.data))
     _ta_check_success("TA_MIN", retCode)
 
     input2 = make_double_array(newlength, lib.TA_MAX_Lookback( fastk_period )) # input2 = highv
-    retCode = lib.TA_MAX( newbegidx , endidx , <double *>(high.data)+begidx , fastk_period , &outbegidx , &outnbelement , <double *>(input2.data))
+    retCode = lib.TA_MAX( newbegidx , endidx , high_data+begidx , fastk_period , &outbegidx , &outnbelement , <double *>(input2.data))
     _ta_check_success("TA_MAX", retCode)
 
     _ta_set_unstable_period(FUNC_UNST_IDS.ID_EMA, unstable_period)
@@ -383,7 +412,7 @@ cdef SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray close , int fastk_perio
     cdef np.ndarray d = SMA(k, slowkd_period)
     return k, d
 
-cdef tuple_double2 stream_SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray close , int fastk_period, int slowkd_period):
+cdef tuple_double2 stream_SLOW_KD(double[::1] high, double[::1] low, double[::1] close , int fastk_period, int slowkd_period):
     """ stream_SLOW_KD
 
     stream_SLOW_KD (Momentum Indicators)
@@ -412,7 +441,7 @@ cdef tuple_double2 stream_SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray cl
     return (k[endidx], d)
 
 
-cdef recent_SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray close , int fastk_period, int slowkd_period, int calc_length):
+cdef recent_SLOW_KD(double[::1] high, double[::1] low, double[::1] close , int fastk_period, int slowkd_period, int calc_length):
     """ recent_SLOW_KD
 
     recent_SLOW_KD (Momentum Indicators)
@@ -455,7 +484,7 @@ cdef AMPLITUDE(np.ndarray high, np.ndarray low, np.ndarray close, int timeperiod
     """
     return (high - low) / shift(close, timeperiod)
 
-cdef double stream_AMPLITUDE(double[:] high, double[:] low, double[:] close, int timeperiod):
+cdef double stream_AMPLITUDE(double[::1] high, double[::1] low, double[::1] close, int timeperiod):
     """stream_AMPLITUDE
 
     振幅：（最高价-最低价）/ 前N收盘价, 一般N为1
@@ -469,7 +498,7 @@ cdef double stream_AMPLITUDE(double[:] high, double[:] low, double[:] close, int
     """
     return (high[-1] - low[-1]) / close[-1 - timeperiod]
 
-cdef recent_AMPLITUDE(np.ndarray[np.double_t, ndim=1] high, np.ndarray[np.double_t, ndim=1] low, np.ndarray[np.double_t, ndim=1] close, int timeperiod, int calc_length):
+cdef recent_AMPLITUDE(np.ndarray high, np.ndarray low, np.ndarray close, int timeperiod, int calc_length):
     """recent_AMPLITUDE
 
     振幅：（最高价-最低价）/ 前N收盘价, 一般N为1
@@ -487,7 +516,7 @@ cdef recent_AMPLITUDE(np.ndarray[np.double_t, ndim=1] high, np.ndarray[np.double
 
 @wraparound(False)
 @boundscheck(False)
-cdef ZIG(np.ndarray real, double perctg):
+cdef ZIG(double[::1] real, double perctg):
     """ZIG
 
     又称wave波浪指标，当价格变化百分比超过`perctg`时转向
@@ -500,21 +529,20 @@ cdef ZIG(np.ndarray real, double perctg):
         points: (ndarray)拐点，非拐点用nan填充
     """
     cdef:
-        np.npy_intp length
+        int length
         int i
         np.ndarray points
         double min_close, max_close, min_point_price, max_point_price, c, last_price
-        double[:] real_view, points_view
+        double[:] points_view
     length = real.shape[0]
     points = make_double_array(length, length)
     min_close = 0
     max_close = 0
     min_point_price = -1
     max_point_price = -1
-    real_view = real
     points_view = points
     for i in range(length):
-        c = real_view[i]
+        c = real[i]
         if min_point_price > 0 and c > min_point_price:
             points_view[i] = min_close
             max_close = c
@@ -537,7 +565,7 @@ cdef ZIG(np.ndarray real, double perctg):
         if max_close > -1 and c > max_close:
             max_close = c
             max_point_price = c * (1 - perctg)
-    last_price = real_view[length-1]
+    last_price = real[length-1]
     # 还没有确认转向，倒数第二个拐点不能确认
     # if max_close > -1 and max_close > last_price:
     #     points_view[?] = max_close

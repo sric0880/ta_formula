@@ -6,7 +6,7 @@ from .indicators cimport numeric_dtype
 cdef extern from "math.h":
     bint isnan(double x)
 
-cdef void shift_inplace(double[:] arr, int num) noexcept nogil:
+cdef void shift_inplace(double[::1] arr, int num) noexcept nogil:
     if num > 0:
         arr[num:] = arr[:-num]
         arr[:num] = NaN
@@ -29,7 +29,7 @@ cdef np.ndarray shift(np.ndarray arr, int num):
 
 @wraparound(False)
 @boundscheck(False)
-cdef void replace(double[:] arr, double orig, double value) noexcept nogil:
+cdef void replace(double[::1] arr, double orig, double value) noexcept nogil:
     cdef int i
     for i in range(arr.shape[0]):
         if arr[i] == orig:
@@ -38,7 +38,7 @@ cdef void replace(double[:] arr, double orig, double value) noexcept nogil:
 
 @wraparound(False)
 @boundscheck(False)
-cdef void ffill(double[:] arr) noexcept nogil:
+cdef void ffill(double[::1] arr) noexcept nogil:
     cdef int i
     cdef double val
     for i in range(1, arr.shape[0]):
@@ -50,7 +50,7 @@ cdef void ffill(double[:] arr) noexcept nogil:
 @wraparound(False)
 @boundscheck(False)
 # https://cython.readthedocs.io/en/latest/src/userguide/numpy_tutorial.html
-cdef rolling_sum(numeric_dtype[:] arr, int window):
+cdef np.ndarray rolling_sum(numeric_dtype[::1] arr, int window):
     cdef int size, start, i, j
     cdef numeric_dtype head, tail
     size = arr.shape[0]
