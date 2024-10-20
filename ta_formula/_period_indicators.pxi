@@ -64,8 +64,8 @@ cdef class PeriodMaxBias(_CalcPeriodIndicator):
             double[:] v_view
             int[:] indexes
         ma250 = SMA(self.close, self.ma_timeperiod)
-        ma250_1 = np_shift(ma250, 1)
-        ma250_2 = np_shift(ma250, 2)
+        ma250_1 = shift(ma250, 1)
+        ma250_2 = shift(ma250, 2)
         v = (ma250 - ma250_1) * (ma250_1 - ma250_2)
         v_view = v
         indexes = view.array(shape=(v.shape[0],), itemsize=sizeof(int), format="i")

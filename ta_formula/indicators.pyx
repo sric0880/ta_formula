@@ -4,32 +4,11 @@ include "_unstable_periods.pxi"
 include "_ta_lib_func.pxi"
 include "_ta_lib_stream.pxi"
 include "_period_indicators.pxi"
-
-from cython import boundscheck, wraparound
-
-
-cdef void np_shift_inplace(double[:] arr, int num):
-    if num > 0:
-        arr[num:] = arr[:-num]
-        arr[:num] = NaN
-    elif num < 0:
-        arr[:num] = arr[-num:]
-        arr[num:] = NaN
-
-cdef np.ndarray np_shift(np.ndarray arr, int num):
-    cdef np.ndarray outreal = PyArray_Copy(arr)
-    cdef double[:] out_view = outreal
-    if num > 0:
-        out_view[num:] = out_view[:-num]
-        out_view[:num] = NaN
-    elif num < 0:
-        out_view[:num] = out_view[-num:]
-        out_view[num:] = NaN
-    return outreal
+include "_numpy_funcs.pxi"
 
 
-@wraparound(False)  # turn off relative indexing from end of lists
-@boundscheck(False) # turn off bounds-checking for entire function
+@wraparound(False)
+@boundscheck(False)
 cdef recent_SMA( np.ndarray real , int timeperiod, int calc_length):
     """ recent_SMA
 
@@ -111,8 +90,8 @@ cdef recent_BIAS(np.ndarray real, int timeperiod, int calc_length):
     return (real[length - calc_length: length] - ma) * 100 / ma
 
 
-@wraparound(False)  # turn off relative indexing from end of lists
-@boundscheck(False) # turn off bounds-checking for entire function
+@wraparound(False)
+@boundscheck(False)
 cdef recent_MACD( np.ndarray real, int fastperiod, int slowperiod , int signalperiod, int calc_length ):
     """ recent_MACD
 
@@ -154,8 +133,8 @@ cdef recent_MACD( np.ndarray real, int fastperiod, int slowperiod , int signalpe
     return dif, dea, outmacdhist
 
 
-@wraparound(False)  # turn off relative indexing from end of lists
-@boundscheck(False) # turn off bounds-checking for entire function
+@wraparound(False)
+@boundscheck(False)
 cdef recent_STOCH( np.ndarray high , np.ndarray low , np.ndarray close, int fastk_period, int slowk_period, int slowk_matype, int slowd_period, int slowd_matype, int calc_length):
     """ recent_STOCH(high, low, close[, fastk_period=?, slowk_period=?, slowk_matype=?, slowd_period=?, slowd_matype=?, calc_length=?])
 
@@ -327,8 +306,8 @@ cdef recent_KDJ(np.ndarray high, np.ndarray low, np.ndarray close, int fastk_per
     return k, d, (3 * k) - (2 * d)
 
 
-@wraparound(False)  # turn off relative indexing from end of lists
-@boundscheck(False) # turn off bounds-checking for entire function
+@wraparound(False)
+@boundscheck(False)
 cdef np.ndarray _stream_SLOW_K(np.ndarray high, np.ndarray low, np.ndarray close , int fastk_period, int slowkd_period, int calc_length):
     cdef:
         np.npy_intp length
@@ -474,7 +453,7 @@ cdef AMPLITUDE(np.ndarray high, np.ndarray low, np.ndarray close, int timeperiod
     Outputs:
         amplitude: (ndarray)
     """
-    return (high - low) / np_shift(close, timeperiod)
+    return (high - low) / shift(close, timeperiod)
 
 cdef double stream_AMPLITUDE(double[:] high, double[:] low, double[:] close, int timeperiod):
     """stream_AMPLITUDE
@@ -490,7 +469,7 @@ cdef double stream_AMPLITUDE(double[:] high, double[:] low, double[:] close, int
     """
     return (high[-1] - low[-1]) / close[-1 - timeperiod]
 
-cdef recent_AMPLITUDE(np.ndarray[DTYPE_t, ndim=1] high, np.ndarray[DTYPE_t, ndim=1] low, np.ndarray[DTYPE_t, ndim=1] close, int timeperiod, int calc_length):
+cdef recent_AMPLITUDE(np.ndarray[np.double_t, ndim=1] high, np.ndarray[np.double_t, ndim=1] low, np.ndarray[np.double_t, ndim=1] close, int timeperiod, int calc_length):
     """recent_AMPLITUDE
 
     振幅：（最高价-最低价）/ 前N收盘价, 一般N为1
@@ -506,8 +485,8 @@ cdef recent_AMPLITUDE(np.ndarray[DTYPE_t, ndim=1] high, np.ndarray[DTYPE_t, ndim
     return (high[-calc_length:] - low[-calc_length:]) / close[-calc_length - timeperiod: -timeperiod]
 
 
-@wraparound(False)  # turn off relative indexing from end of lists
-@boundscheck(False) # turn off bounds-checking for entire function
+@wraparound(False)
+@boundscheck(False)
 cdef ZIG(np.ndarray real, double perctg):
     """ZIG
 

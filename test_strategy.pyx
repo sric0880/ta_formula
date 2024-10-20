@@ -1,4 +1,4 @@
-cimport ta_formula._indicators as ta
+cimport ta_formula.indicators as ta
 cimport numpy as np
 
 # define datas intervals

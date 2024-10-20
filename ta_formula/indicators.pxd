@@ -6,14 +6,19 @@
 
 cimport numpy as np
 
-ctypedef np.double_t DTYPE_t
 ctypedef (double, double) tuple_double2
 ctypedef (double, double, double) tuple_double3
 ctypedef (double, double, double, double) tuple_double4
 
-#############################################
-# START GENCODE FUNCTIONS FROM '_bool_func.pxi'
+ctypedef fused numeric_dtype:
+    int
+    double
+    long long
 
+
+
+#############################################
+# START FUNCTIONS COPY FROM '_bool_func.pxi'
 
 cdef inline v(double[:] line, int offset):
     """V型拐点"""
@@ -179,14 +184,27 @@ cdef inline green_bar_real(double[:] OPEN, double[:] CLOSE, int offset):
     o, c, pre_c = OPEN[offset], CLOSE[offset], CLOSE[offset - 1]
     return c < pre_c or (c == pre_c and c <= o)
 
-
-# END GENCODE FUNCTIONS FROM '_bool_func.pxi'
+# END FUNCTIONS COPY FROM '_bool_func.pxi'
 #############################################
 
 
 
+
 #############################################
-# START GENCODE FUNCTIONS FROM '_ta_lib_func.pxi'
+# START FUNCTIONS GEN FROM '_numpy_funcs.pxi'
+
+cdef void shift_inplace(double[:] arr, int num) noexcept nogil
+cdef np.ndarray shift(np.ndarray arr, int num)
+cdef void replace(double[:] arr, double orig, double value) noexcept nogil
+cdef void ffill(double[:] arr) noexcept nogil
+cdef rolling_sum(numeric_dtype[:] arr, int window)
+
+# END FUNCTIONS GEN FROM '_numpy_funcs.pxi'
+#############################################
+
+
+#############################################
+# START FUNCTIONS GEN FROM '_ta_lib_func.pxi'
 
 cdef np.ndarray make_double_array(np.npy_intp length, int lookback)
 cdef np.ndarray make_int_array(np.npy_intp length, int lookback)
@@ -349,12 +367,12 @@ cdef WCLPRICE( np.ndarray high , np.ndarray low , np.ndarray close )
 cdef WILLR( np.ndarray high , np.ndarray low , np.ndarray close , int timeperiod)
 cdef WMA( np.ndarray real , int timeperiod)
 
-# END GENCODE FUNCTIONS FROM '_ta_lib_func.pxi'
+# END FUNCTIONS GEN FROM '_ta_lib_func.pxi'
 #############################################
 
 
 #############################################
-# START GENCODE FUNCTIONS FROM '_ta_lib_stream.pxi'
+# START FUNCTIONS GEN FROM '_ta_lib_stream.pxi'
 
 cdef stream_ACOS( np.ndarray real )
 cdef stream_AD( np.ndarray high , np.ndarray low , np.ndarray close , np.ndarray volume )
@@ -515,15 +533,13 @@ cdef stream_WCLPRICE( np.ndarray high , np.ndarray low , np.ndarray close )
 cdef stream_WILLR( np.ndarray high , np.ndarray low , np.ndarray close , int timeperiod)
 cdef stream_WMA( np.ndarray real , int timeperiod)
 
-# END GENCODE FUNCTIONS FROM '_ta_lib_stream.pxi'
+# END FUNCTIONS GEN FROM '_ta_lib_stream.pxi'
 #############################################
 
 
 #############################################
-# START GENCODE FUNCTIONS FROM '_indicators.pyx'
+# START FUNCTIONS GEN FROM 'indicators.pyx'
 
-cdef void np_shift_inplace(double[:] arr, int num)
-cdef np.ndarray np_shift(np.ndarray arr, int num)
 cdef recent_SMA( np.ndarray real , int timeperiod, int calc_length)
 cdef BIAS(np.ndarray real, int timeperiod)
 cdef double stream_BIAS(np.ndarray real, int timeperiod)
@@ -541,10 +557,9 @@ cdef tuple_double2 stream_SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray cl
 cdef recent_SLOW_KD(np.ndarray high, np.ndarray low, np.ndarray close , int fastk_period, int slowkd_period, int calc_length)
 cdef AMPLITUDE(np.ndarray high, np.ndarray low, np.ndarray close, int timeperiod)
 cdef double stream_AMPLITUDE(double[:] high, double[:] low, double[:] close, int timeperiod)
-cdef recent_AMPLITUDE(np.ndarray[DTYPE_t, ndim=1] high, np.ndarray[DTYPE_t, ndim=1] low, np.ndarray[DTYPE_t, ndim=1] close, int timeperiod, int calc_length)
+cdef recent_AMPLITUDE(np.ndarray[np.double_t, ndim=1] high, np.ndarray[np.double_t, ndim=1] low, np.ndarray[np.double_t, ndim=1] close, int timeperiod, int calc_length)
 cdef ZIG(np.ndarray real, double perctg)
 cdef PERIOD_MAX_BIAS(np.ndarray close, int ma_timeperiod, int period_nums)
 
-# END GENCODE FUNCTIONS FROM '_indicators.pyx'
+# END FUNCTIONS GEN FROM 'indicators.pyx'
 #############################################
-

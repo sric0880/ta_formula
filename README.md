@@ -31,7 +31,7 @@ pip install ta_formula
 ## 策略文件示例
 
 ```py
-cimport ta_formula._indicators as ta
+cimport ta_formula.indicators as ta
 cimport numpy as np
 
 # define datas intervals
@@ -108,9 +108,9 @@ ret = {
 2. `stream_MACD`: 只计算最后一天的指标，返回double,或者tuple(double,double)等。
 3. `recent_MACD`: 计算最近`calc_length`天的指标，返回ndarray，当`calc_length==1`时，效果和`stream_MACD`一样。
 
-## 已扩展的自定义指标
+## 已扩展的方法
 
-指标含义及用法见代码`_indicators.pyx`注释
+指标含义及用法见代码`indicators.pyx`注释
 
 ```c
 // 一般指标
@@ -118,6 +118,9 @@ SMA, BIAS, MACD, STOCH, KD, KDJ, SLOW_KD AMPLITUDE, ZIG,
 
 // 区间指标
 PERIOD_MAX_BIAS
+
+// numpy 函数
+shift_inplace shift replace ffill rolling_sum
 ```
 
 ## 扩展TA-Lib
@@ -130,7 +133,7 @@ PERIOD_MAX_BIAS
 
 添加`recent_xxx`方法：
 
-从TA-Lib`_stream.pxi`源文件直接复制到`_indicators.pyx`改写，并改名为`recent_xxx`
+从TA-Lib`_stream.pxi`源文件直接复制到`indicators.pyx`改写，并改名为`recent_xxx`
 
 ## stream_xxx 和 recent_xxx 函数计算精度的问题
 
