@@ -7,13 +7,13 @@ from inspect import iscoroutinefunction
 from .exceptions import DataBackendNotFound
 
 __all__ = [
-    'DataBackend',
-    'AioDataBackend',
-    'add_backend',
-    'get_backend',
-    'get_backends',
-    'close_all_backends',
-    'close_all_backends_async',
+    "DataBackend",
+    "AioDataBackend",
+    "add_backend",
+    "get_backend",
+    "get_backends",
+    "close_all_backends",
+    "close_all_backends_async",
 ]
 
 _registered_backends = {}
@@ -31,10 +31,10 @@ class _BaseDataBackend:
         self._calc_units = set()
 
     def __str__(self) -> str:
-        return f'{self.__class__.__name__}({self.bid}, {self.config})'
+        return f"{self.__class__.__name__}({self.bid}, {self.config})"
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.bid})'
+        return f"{self.__class__.__name__}({self.bid})"
 
     def on_update(self, symbol, interval):
         for unit in list(self._calc_units):
@@ -54,7 +54,7 @@ class DataBackend(_BaseDataBackend):
         super().__init__(bid, config)
 
     def prepare(self, symbols: list, intervals: list):
-        '''
+        """
         需要准备`symbols`下的所有`intervals`数据，准备好的数据调用`add_data`更新
 
         每次策略开始前只调用一次，数据准备准备好之后，需要调用`on_update`通知策略
@@ -64,7 +64,7 @@ class DataBackend(_BaseDataBackend):
         参数：
             `symbols`: 是金融产品的代码列表
             `intervals`: 是数据频率，可以是'1m','1D', 或者'tick'
-        '''
+        """
 
     def close(self):
         pass
@@ -75,7 +75,7 @@ class AioDataBackend(_BaseDataBackend):
         super().__init__(bid, config)
 
     async def prepare(self, symbols: list, intervals: list):
-        '''
+        """
         需要准备`symbols`下的所有`intervals`数据，准备好的数据调用`add_data`更新
 
         每次策略开始前只调用一次，数据准备准备好之后，需要调用`on_update`通知策略
@@ -85,44 +85,49 @@ class AioDataBackend(_BaseDataBackend):
         参数：
             `symbols`: 是金融产品的代码列表
             `intervals`: 是数据频率，可以是'1m','1D', 或者'tick'
-        '''
+        """
 
     async def close(self):
         pass
 
+
 # singledispatch 3.9暂时不支持Union类型
 # 从3.11开始支持：https://docs.python.org/3/library/functools.html
 # DataBackendClass = Union[DataBackend, AioDataBackend]
+
 
 @singledispatch
 def add_backend(claname: str, bid: str, config: dict):
     if bid not in data_backends:
         cls = _registered_backends[claname]
         data_backends[bid] = backend = cls(bid, config)
-        logging.debug(f'{backend} Added')
+        logging.debug(f"{backend} Added")
         return backend
     else:
         return data_backends[bid]
+
 
 @add_backend.register
 def _(instance: DataBackend):
     if instance.bid not in data_backends:
         data_backends[instance.bid] = instance
-        logging.debug(f'{instance} Added')
+        logging.debug(f"{instance} Added")
     return data_backends[instance.bid]
+
 
 @add_backend.register
 def _(instance: AioDataBackend):
     if instance.bid not in data_backends:
         data_backends[instance.bid] = instance
-        logging.debug(f'{instance} Added')
+        logging.debug(f"{instance} Added")
     return data_backends[instance.bid]
+
 
 def get_backend(bid: str):
     try:
         return data_backends[bid]
     except KeyError as e:
-        raise DataBackendNotFound(f'{bid} data backend is not registered') from e
+        raise DataBackendNotFound(f"{bid} data backend is not registered") from e
 
 
 def get_backends(bids):
