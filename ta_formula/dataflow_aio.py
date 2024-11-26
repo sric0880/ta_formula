@@ -3,22 +3,29 @@ import time
 from inspect import iscoroutinefunction
 
 from .calculation import _CalculationCenter
-from .dataflow_misc import _parse_datasources, _prepare_arguments
+from .dataflow_misc import parse_datasources, prepare_arguments
 from .strategy import get_strategy
 
-__all__ = ['open_signal_stream']
+__all__ = ["open_signal_stream"]
 
 calculation_center = _CalculationCenter()
 
+
 async def open_signal_stream(request):
-    datasources = request['datasources']
-    datasources = _parse_datasources(datasources)
+    datasources = request["datasources"]
+    datasources = parse_datasources(datasources)
     # 这里编译pyx文件会阻塞线程，应该放到新开线程中去
     loop = asyncio.get_event_loop()
-    strategy = await loop.run_in_executor(None, get_strategy, request['pyx_file'], request['params'], request['return_fields'])
-    datas_struct = request['datas'] if 'datas' in request else strategy.datas_struct
+    strategy = await loop.run_in_executor(
+        None,
+        get_strategy,
+        request["pyx_file"],
+        request["params"],
+        request["return_fields"],
+    )
+    datas_struct = request["datas"] if "datas" in request else strategy.datas_struct
     # 准备所有需要的数据
-    call_prepare_args = _prepare_arguments(datasources, datas_struct)
+    call_prepare_args = prepare_arguments(datasources, datas_struct)
     await _batch_call_backend_method(call_prepare_args)
     units = []
     for dss in datasources:
@@ -37,7 +44,7 @@ async def open_signal_stream(request):
                 signals = _waiter.clear()
                 for signal in signals.values():
                     # 附加 发送时间
-                    signal['calc_time'] = time.perf_counter_ns() - signal['calc_time']
+                    signal["calc_time"] = time.perf_counter_ns() - signal["calc_time"]
                     yield signal
     finally:
         for unit in units:
@@ -61,7 +68,7 @@ async def _batch_call_backend_method(arguments):
 
 class DictEvent:
     def __init__(self, loop):
-        self.fut = None # only one waiter
+        self.fut = None  # only one waiter
         self._value = {}
         self._loop = loop
 

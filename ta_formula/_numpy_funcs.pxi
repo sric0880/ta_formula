@@ -30,6 +30,7 @@ cdef np.ndarray shift(np.ndarray arr, int num):
 @wraparound(False)
 @boundscheck(False)
 cdef void replace(double[::1] arr, double orig, double value) noexcept nogil:
+    #BUG: cannot replace nan, because nan != nan
     cdef int i
     for i in range(arr.shape[0]):
         if arr[i] == orig:

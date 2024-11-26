@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ta_formula"
-version = "1.1"
+version = "1.1.1"
 description = 'talib extension for formula computation'
 authors = [
     {name = "sric0880", email = 'justgotpaid88@qq.com'}
