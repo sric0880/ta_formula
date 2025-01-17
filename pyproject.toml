@@ -47,7 +47,7 @@ Issues = "https://github.com/sric0880/ta_formula/issues"
 include-package-data = true
 
 [tool.setuptools.package-data]
-"ta_formula" = ["*.pxd"]
+ta_formula = ["*.pxd"]
 
 [tool.setuptools.package-dir]
 ta_formula = "ta_formula"
