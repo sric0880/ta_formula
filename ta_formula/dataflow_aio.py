@@ -3,7 +3,7 @@ import time
 from inspect import iscoroutinefunction
 
 from .calculation import _CalculationCenter
-from .dataflow_misc import parse_datasources, prepare_arguments
+from .dataflow_misc import RequestParser
 from .strategy import get_strategy
 
 __all__ = ["open_signal_stream"]
@@ -11,28 +11,18 @@ __all__ = ["open_signal_stream"]
 calculation_center = _CalculationCenter()
 
 
-async def open_signal_stream(request):
-    datasources = request["datasources"]
-    datasources = parse_datasources(datasources)
+async def open_signal_stream(req_parser: RequestParser):
     # 这里编译pyx文件会阻塞线程，应该放到新开线程中去
     loop = asyncio.get_event_loop()
     strategy = await loop.run_in_executor(
-        None,
-        get_strategy,
-        request["pyx_file"],
-        request["params"],
-        request["return_fields"],
+        None, get_strategy, *req_parser.get_strategy_params()
     )
-    datas_struct = request["datas"] if "datas" in request else strategy.datas_struct
     # 准备所有需要的数据
-    call_prepare_args = prepare_arguments(datasources, datas_struct)
-    await _batch_call_backend_method(call_prepare_args)
+    await _batch_call_backend_method(req_parser.get_prepare_data_params(strategy))
+    # 生成计算单元
     units = []
-    for dss in datasources:
-        symbol_infos = []
-        for (db, symbol), intervals in zip(dss, datas_struct):
-            symbol_infos.append((db, symbol, intervals))
-        units.append(calculation_center.push(strategy, symbol_infos))
+    for one_unit_sources in req_parser.datasources:
+        units.append(calculation_center.push(strategy, one_unit_sources))
 
     loop = asyncio.get_running_loop()
     _waiter = DictEvent(loop)

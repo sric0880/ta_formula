@@ -2,7 +2,7 @@ import threading
 import time
 
 from .calculation import _CalculationCenter
-from .dataflow_misc import parse_datasources, prepare_arguments
+from .dataflow_misc import RequestParser
 from .strategy import get_strategy
 
 __all__ = ["open_signal_stream"]
@@ -10,22 +10,14 @@ __all__ = ["open_signal_stream"]
 calculation_center = _CalculationCenter(threading.Lock())
 
 
-def open_signal_stream(request):
-    datasources = request["datasources"]
-    datasources = parse_datasources(datasources)
-    strategy = get_strategy(
-        request["pyx_file"], request["params"], request["return_fields"]
-    )
-    datas_struct = request["datas"] if "datas" in request else strategy.datas_struct
+def open_signal_stream(req_parser: RequestParser):
+    strategy = get_strategy(*req_parser.get_strategy_params())
     # 准备所有需要的数据
-    call_prepare_args = prepare_arguments(datasources, datas_struct)
-    _batch_call_backend_method(call_prepare_args)
+    _batch_call_backend_method(req_parser.get_prepare_data_params(strategy))
+    # 生成计算单元
     units = []
-    for dss in datasources:
-        symbol_infos = []
-        for (db, symbol), intervals in zip(dss, datas_struct):
-            symbol_infos.append((db, symbol, intervals))
-        units.append(calculation_center.push(strategy, symbol_infos))
+    for one_unit_sources in req_parser.datasources:
+        units.append(calculation_center.push(strategy, one_unit_sources))
 
     _waiter = DictEvent()
     for unit in units:
