@@ -72,6 +72,7 @@ ret = {
 ```json
 {
   "symbols": [["shanghai001", "ag2412"]],
+  "data_update_time": 0,
   "data_rec_time": 1717486288.8170903,
   "calc_time": 269900,
   "open_long_condition1": false,
@@ -85,9 +86,10 @@ ret = {
 }
 ```
 
-其中`symbols`, `data_rec_time`、`calc_time`为附加返回字段，分别表示:
+其中`symbols`, `data_update_time`, `data_rec_time`、`calc_time`为附加返回字段，分别表示:
 
 - symbols返回当前策略计算用的金融标的组合
+- data_update_time数据更新的时间，由数据服务器发送过来，单位以数据后台为准
 - 接收到数据的时间戳，单位秒，float，系统时间可能有误差
 - 策略从接收数据，到计算完成，发送信号经过的时间，单位纳秒，int
 

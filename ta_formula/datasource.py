@@ -36,9 +36,9 @@ class _BaseDataBackend:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.bid})"
 
-    def on_update(self, symbol, interval):
+    def on_update(self, symbol, interval, update_dt=0):
         for unit in list(self._calc_units):
-            unit.on_update(self.bid, symbol, interval)
+            unit.on_update(self.bid, symbol, interval, update_dt)
 
     def add_data(self, symbol, interval, data):
         if not isinstance(data, dict):

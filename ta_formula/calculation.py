@@ -1,4 +1,3 @@
-
 import logging
 import time
 from collections import defaultdict
@@ -7,7 +6,7 @@ from collections import defaultdict
 
 # profile = LineProfiler()
 
-__all__ = ['calculation_center']
+__all__ = ["calculation_center"]
 # __all__ = ['calculation_center', 'profile']
 
 
@@ -19,16 +18,26 @@ class _CalculationCenter:
         self.ref_counts = defaultdict(int)
 
     def push(self, strategy, symbol_infos):
-        _hash = hash((strategy._hash, tuple((db.bid, symbol, *intervals) for db, symbol, intervals in symbol_infos)))
+        _hash = hash(
+            (
+                strategy._hash,
+                tuple(
+                    (db.bid, symbol, *intervals)
+                    for db, symbol, intervals in symbol_infos
+                ),
+            )
+        )
         if self._lock is not None:
             self._lock.acquire()
         self.ref_counts[_hash] += 1
         unit = self.calc_units.get(_hash, None)
         if unit is None:
-            self.calc_units[_hash] = unit = _CalculateUnit(strategy, symbol_infos, _hash)
-            logging.debug(f'{unit}: New. Ref count {self.ref_counts[_hash]}')
+            self.calc_units[_hash] = unit = _CalculateUnit(
+                strategy, symbol_infos, _hash
+            )
+            logging.debug(f"{unit}: New. Ref count {self.ref_counts[_hash]}")
         else:
-            logging.debug(f'{unit}: Ref plus. Count {self.ref_counts[_hash]}')
+            logging.debug(f"{unit}: Ref plus. Count {self.ref_counts[_hash]}")
         if self._lock is not None:
             self._lock.release()
         return unit
@@ -39,25 +48,26 @@ class _CalculationCenter:
             self._lock.acquire()
         ref = self.ref_counts[_hash]
         if ref == 0:
-            logging.error(f'{unit}: Ref is zero, cannot pop.')
+            logging.error(f"{unit}: Ref is zero, cannot pop.")
             return
         ref -= 1
         self.ref_counts[_hash] = ref
         if ref == 0:
-            logging.debug(f'{unit}: Delete. Ref count {ref}')
+            logging.debug(f"{unit}: Delete. Ref count {ref}")
             unit = self.calc_units.pop(_hash)
             unit.release()
         else:
-            logging.debug(f'{unit}: Ref minus. Count {ref}')
+            logging.debug(f"{unit}: Ref minus. Count {ref}")
         if self._lock is not None:
             self._lock.release()
 
 
 class _ConsistentFlag:
-    __slots__ = ['states', '_full_state']
+    __slots__ = ["states", "_full_state"]
+
     def __init__(self, full_state) -> None:
         self._full_state = full_state
-        self.states = [False]*full_state
+        self.states = [False] * full_state
 
     def consistent(self):
         first_state = self.states[0]
@@ -67,10 +77,12 @@ class _ConsistentFlag:
         return True
 
     def reset(self):
-        self.states = [False]*self._full_state
+        self.states = [False] * self._full_state
+
 
 class _Data:
-    __slots__ = ['cflag', 'data', 'index']
+    __slots__ = ["cflag", "data", "index"]
+
     def __init__(self, cflag, data, index) -> None:
         self.cflag = cflag
         self.data = data
@@ -82,7 +94,7 @@ class _CalculateUnit:
         self.strategy = strategy
         self.symbol_infos = symbol_infos
         self._hash = _hash
-        self._datas_list = [None]*len(strategy.datas_interface)
+        self._datas_list = [None] * len(strategy.datas_interface)
         self.datas_map = {}
         self._symbol_names = []
         self._cflags = []
@@ -96,7 +108,12 @@ class _CalculateUnit:
             cflag = _ConsistentFlag(len(intervals))
             self._cflags.append(cflag)
             symbols = self.datas_map.setdefault(db.bid, {})
-            symbols[symbol] = dict(zip(intervals, [_Data(cflag, _data, i) for i,_data in enumerate(_datas)]))
+            symbols[symbol] = dict(
+                zip(
+                    intervals,
+                    [_Data(cflag, _data, i) for i, _data in enumerate(_datas)],
+                )
+            )
             db._calc_units.add(self)
         strategy.feed_external_datas(datas, self._datas_list)
 
@@ -108,7 +125,7 @@ class _CalculateUnit:
                 pass
 
     # @profile
-    def on_update(self, backend_id, symbol, interval):
+    def on_update(self, backend_id, symbol, interval, update_dt):
         # TODO: 如果有多个数据后台多线程运行，这个函数需要考虑线程安全
         try:
             _data = self.datas_map[backend_id][symbol][interval]
@@ -130,10 +147,11 @@ class _CalculateUnit:
         # 计算入口
         signal = self.strategy.calculate_x(self._datas_list)
         # 附加 计算单元ID
-        signal['calc_unit_id'] = self._hash
-        signal['data_rec_time'] = data_rec_time
-        signal['calc_time'] = start_counter
-        signal['symbols'] = self._symbol_names
+        signal["calc_unit_id"] = self._hash
+        signal["data_update_time"] = update_dt
+        signal["data_rec_time"] = data_rec_time
+        signal["calc_time"] = start_counter
+        signal["symbols"] = self._symbol_names
         for waiter in self._waiters:
             waiter.add_result(self._hash, signal)
 
@@ -150,4 +168,4 @@ class _CalculateUnit:
         return id(self) == id(value)
 
     def __str__(self):
-        return f'{self.__class__.__name__}({self.strategy}, {self.symbol_infos}, {self._hash})'
+        return f"{self.__class__.__name__}({self.strategy}, {self.symbol_infos}, {self._hash})"
