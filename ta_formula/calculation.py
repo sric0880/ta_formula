@@ -1,6 +1,7 @@
-import logging
 import time
 from collections import defaultdict
+
+import picologging as logging
 
 # from line_profiler import LineProfiler
 
@@ -133,7 +134,7 @@ class _CalculateUnit:
             return
         # 附加 数据接收时间戳
         start_counter = time.perf_counter_ns()
-        data_rec_time = time.time()
+        data_rec_time = int(time.time() * 1000000)
         _data.cflag.states[_data.index] = True
 
         # 同一标的的不同频率的数据，要么全部没更新，要么全部更新

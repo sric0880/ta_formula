@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from .datasource import get_backend
+from .exceptions import DatasListNotMatch
 
 
 class RequestParser:
@@ -28,6 +29,10 @@ class DictRequestParser(RequestParser):
         datasources = self.request["datasources"]
         datas_struct = self.request.get("datas", strategy.datas_struct)
         for one_unit_sources in datasources:
+            if len(datas_struct) != len(one_unit_sources):
+                raise DatasListNotMatch(
+                    "request params datas and datasources not matched"
+                )
             b = []
             for source, intervals in zip(one_unit_sources, datas_struct):
                 symbol, bid = source.split("@")
@@ -41,5 +46,5 @@ class DictRequestParser(RequestParser):
             for source in group_unit_sources:
                 symbols_by_db[source[0]].add(source[1])
             for db, symbols in symbols_by_db.items():
-                ret.append((db, "prepare", list(symbols), intervals))
+                ret.append((db, list(symbols), intervals))
         return ret

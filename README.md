@@ -73,7 +73,7 @@ ret = {
 {
   "symbols": [["shanghai001", "ag2412"]],
   "data_update_time": 0,
-  "data_rec_time": 1717486288.8170903,
+  "data_rec_time": 17174862888170903,
   "calc_time": 269900,
   "open_long_condition1": false,
   "open_short_condition1": false,
@@ -90,7 +90,7 @@ ret = {
 
 - symbols返回当前策略计算用的金融标的组合
 - data_update_time数据更新的时间，由数据服务器发送过来，单位以数据后台为准
-- 接收到数据的时间戳，单位秒，float，系统时间可能有误差
+- 接收到数据的时间戳，单位微妙，int，系统时间可能有误差
 - 策略从接收数据，到计算完成，发送信号经过的时间，单位纳秒，int
 
 通过比较三者的时间差，可以大致知道计算延迟和网络延迟

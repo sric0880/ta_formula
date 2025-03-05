@@ -18,7 +18,15 @@ async def open_signal_stream(req_parser: RequestParser):
         None, get_strategy, *req_parser.get_strategy_params()
     )
     # 准备所有需要的数据
-    await _batch_call_backend_method(req_parser.get_prepare_data_params(strategy))
+    async_funcs = []
+    for backend, *args in req_parser.get_prepare_data_params(strategy):
+        func = getattr(backend, "prepare")
+        if iscoroutinefunction(func):
+            async_funcs.append(asyncio.create_task(func(*args)))
+        else:
+            async_funcs.append(loop.run_in_executor(None, func, *args))
+    if async_funcs:
+        await asyncio.gather(*async_funcs)
     # 生成计算单元
     units = []
     for one_unit_sources in req_parser.datasources:
@@ -40,20 +48,6 @@ async def open_signal_stream(req_parser: RequestParser):
         for unit in units:
             unit._remove_waiter(_waiter)
             calculation_center.pop(unit)
-
-
-async def _batch_call_backend_method(arguments):
-    async_funcs = []
-    for backend, funcname, *args in arguments:
-        func = getattr(backend, funcname)
-        if iscoroutinefunction(func):
-            async_funcs.append(asyncio.create_task(func(*args)))
-        else:
-            async_funcs.append(
-                asyncio.get_event_loop().run_in_executor(None, func, *args)
-            )
-    if async_funcs:
-        await asyncio.gather(*async_funcs)
 
 
 class DictEvent:

@@ -13,7 +13,9 @@ calculation_center = _CalculationCenter(threading.Lock())
 def open_signal_stream(req_parser: RequestParser):
     strategy = get_strategy(*req_parser.get_strategy_params())
     # 准备所有需要的数据
-    _batch_call_backend_method(req_parser.get_prepare_data_params(strategy))
+    for backend, *args in req_parser.get_prepare_data_params(strategy):
+        func = getattr(backend, "prepare")
+        func(*args)  # 准备好这些数据字段，一直等待准备好为止
     # 生成计算单元
     units = []
     for one_unit_sources in req_parser.datasources:
@@ -34,12 +36,6 @@ def open_signal_stream(req_parser: RequestParser):
         for unit in units:
             unit._remove_waiter(_waiter)
             calculation_center.pop(unit)
-
-
-def _batch_call_backend_method(arguments):
-    for backend, funcname, *args in arguments:
-        func = getattr(backend, funcname)
-        func(*args)  # 准备好这些数据字段，一直等待准备好为止
 
 
 class DictEvent:
