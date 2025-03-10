@@ -1,9 +1,8 @@
 import asyncio
+import logging
 from collections import defaultdict
 from functools import singledispatch
 from inspect import iscoroutinefunction
-
-import picologging as logging
 
 from .exceptions import DataBackendNotFound
 

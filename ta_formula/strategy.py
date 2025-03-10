@@ -1,11 +1,11 @@
 import importlib
+import logging
 import os
 import tempfile
 from distutils.sysconfig import get_python_lib
 from itertools import chain
 
 import numpy as np
-import picologging as logging
 from pyximport import pyximport
 
 from .exceptions import DatasListNotMatch
